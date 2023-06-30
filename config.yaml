@@ -1,0 +1,33 @@
+SQLALCHEMY_DATABASE_URI: postgresql://projectuser:rootpassword@localhost/hungergames
+
+LOGGING:
+  LEVEL: INFO
+  FILE:
+    LEVEL: INFO
+    HANDLER:
+      maxBytes: 1024 # 1MB = 1024 Bytes
+      backupCount: 10 # max backup files
+      filename: logs/app.log
+    FORMATTER:
+      #format
+      fmt: "%(asctime)s - %(levelname)s - %(message)s"
+
+  WEBSOCKET:
+    LEVEL: NOTSET
+    EVENT_NAME: new_log  # event name for adding a new log line at frontend
+    NAMESPACE: logs  # namespace name for socketio handler
+    FORMATTER:
+      #format
+      fmt: "%(asctime)s - %(levelname)s - %(message)s"
+
+PERIODIC_TASKS:
+
+  DELETE_UNAVAILABLE_URLS:
+    MAX_RETRIES: 2
+    RUN_SCHEDULE_HOUR: "*/12"
+
+  GET_RESPONSES_FROM_URLS:
+    RUN_SCHEDULE_HOUR: "*/12"
+
+LOG_LINES_NUMBER: 20
+
