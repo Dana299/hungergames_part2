@@ -10,7 +10,7 @@ from main.db.models import (FileProcessingRequest, WebResource,
 from main.utils.urlparser import parse_url
 
 
-def create_web_resource(validated_url: str) -> WebResource:
+def create_web_resource(validated_url: str) -> WebResource | None:
     """Save WebResource instance in database."""
     response = parse_url(url=validated_url)
 
@@ -22,9 +22,15 @@ def create_web_resource(validated_url: str) -> WebResource:
         url_path=response.path,
         query_params=response.query_params,
     )
+
+    # check whether resource already exists in DB
+    existing_resource = WebResource.query.filter_by(full_url=validated_url).first()
+
+    if existing_resource:
+        return None
+
     db.session.add(web_resource)
     db.session.commit()
-
     return web_resource
 
 
