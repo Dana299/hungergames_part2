@@ -19,3 +19,17 @@ class WebSocketHandler(logging.Handler):
             },
             namespace="/logs"
         )
+
+
+class LogBufferHandler(logging.Handler):
+    def __init__(self, buffer_obj, max_size, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.buffer_obj = buffer_obj
+        self.size = max_size
+
+    def emit(self, record: logging.LogRecord) -> None:
+        if len(self.buffer_obj) >= self.size:
+            self.buffer_obj.pop(-1)
+        self.buffer_obj.append(
+            dict(level=record.levelname, message=self.formatter.format(record))
+        )

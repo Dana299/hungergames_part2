@@ -1,7 +1,7 @@
 from flask import Response, jsonify, render_template, request, url_for
 from pydantic import ValidationError
 
-from main import bp, services, app
+from main import app, bp, log_buffer, services, socketio
 from main.db import models, schemas
 from main.tasks import process_urls_from_zip_archive
 from main.utils.helpers import make_int
@@ -186,4 +186,8 @@ def post_image_for_resource(resource_uuid: int):
             return jsonify(response), 400
 
 
-
+@socketio.on("connect", namespace="/logs")
+def connect():
+    # app.logger.info("Websocket connection to /logs page")
+    logs = log_buffer
+    socketio.emit(event="init_logs", data={"logs": logs}, namespace="/logs")

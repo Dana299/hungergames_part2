@@ -1,18 +1,28 @@
+LOG_PATH: &LOG_PATH logs/app.log
 
 LOGGING:
   LEVEL: INFO
+
   FILE:
-    LEVEL: INFO
+    LEVEL: &FILE_LEVEL INFO
     HANDLER:
       maxBytes: 1024 # 1MB = 1024 Bytes
       backupCount: 10 # max backup files
-      filename: logs/app.log
+      filename: *LOG_PATH
     FORMATTER:
       #format
       fmt: "%(asctime)s - %(levelname)s - %(message)s"
 
-  WEBSOCKET:
+  BUFFER:
+    SHOWN_DEFAULT: 50  # count of last log messages stored in buffer
+    LEVEL: *FILE_LEVEL
+    FORMATTER:
+      #format
+      fmt: "%(asctime)s - %(levelname)s - %(message)s"
+
+  WS:
     LEVEL: NOTSET
+    SHOWED_COUNT: 50  # count of last log messages seen when page is opened
     EVENT_NAME: new_log  # event name for adding a new log line at frontend
     NAMESPACE: logs  # namespace name for socketio handler
     FORMATTER:
@@ -29,4 +39,3 @@ PERIODIC_TASKS:
     RUN_SCHEDULE_HOUR: "*/12"
 
 LOG_LINES_NUMBER: 20
-

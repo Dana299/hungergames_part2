@@ -10,8 +10,8 @@ from flask import Flask
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 
-from main import socketio
-from main.logger import WebSocketHandler
+from main import log_buffer, socketio
+from main.logger import LogBufferHandler, WebSocketHandler
 
 db = SQLAlchemy()
 
@@ -21,7 +21,16 @@ load_dotenv(os.path.join(BASE_PATH, ".env"))
 
 def create_app():
     app = Flask(__name__)
-    app.config.from_file(str(BASE_PATH) + '/config.yaml', load=yaml.safe_load)
+
+    if not os.path.isabs(conf_file):
+        conf_file = os.path.join(BASE_PATH, conf_file)
+
+    if not conf_file.endswith(".yaml"):
+        raise FileNotFoundError(
+            f"Yaml config file not found in project directory, check that {conf_file} exist."
+        )
+
+    app.config.from_file(conf_file, load=yaml.safe_load)
 
     app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://{}:{}@{}/{}'.format(
         os.getenv('POSTGRES_USER', 'flask'),
@@ -61,45 +70,68 @@ def celery_init_app(app: Flask) -> Celery:
     return celery_app
 
 
-def add_file_handler(app: Flask, conf: dict):
-    formatter = conf["FORMATTER"]
+def configure_logging(app):
+    """Set logger level and add necessary handlers."""
+
+    logging_conf = app.config["LOGGING"]
+
+    # setup global logging level
+    level = logging_conf["LEVEL"]
+    app.logger.setLevel(level)
+
+    # add rotating file handler with app config
+    file_conf = logging_conf["FILE"]
+    _add_file_handler(app, file_conf)
+
+    # add buffer handler for store all new log in memory
+    buffer_conf = logging_conf["BUFFER"]
+    _add_buffer_handler(app, buffer_conf)
+
+    # add websocket handler for realtime logs monitoring
+    ws_conf = logging_conf["WS"]
+    _add_ws_handler(app, socketio, ws_conf)
+
+
+def _add_file_handler(app, conf: dict):
+    """Add rotation file log handler."""
+    formatter_data = conf["FORMATTER"]
     handler_args = conf["HANDLER"]
     level = conf["LEVEL"]
 
     handler = RotatingFileHandler(**handler_args)
     handler.setLevel(level)
 
-    log_formatter = logging.Formatter(**formatter)
+    log_formatter = logging.Formatter(**formatter_data)
     handler.setFormatter(log_formatter)
 
     app.logger.addHandler(handler)
 
 
-def add_websocket_handler(app: Flask, socket_obj: SocketIO, conf: dict):
-    formatter = conf["FORMATTER"]
-    event_name = conf["EVENT_NAME"]
-    namespace = conf["NAMESPACE"]
+def _add_buffer_handler(app, conf):
+    """Set buffer handler that store all new logs."""
+    formatter_conf = conf["FORMATTER"]
     level = conf["LEVEL"]
+    max_size = conf["SHOWN_DEFAULT"]
 
-    handler = WebSocketHandler(
-        socket_obj=socket_obj,
-        event_name=event_name,
-        level=level,
-        namespace=namespace,
-    )
-    formatter = logging.Formatter(**formatter)
+    # use common dynamic list for buffer
+    handler = LogBufferHandler(buffer_obj=log_buffer, max_size=max_size)
+    handler.setLevel(level)
+
+    formatter = logging.Formatter(**formatter_conf)
     handler.setFormatter(formatter)
 
     app.logger.addHandler(handler)
 
 
-def configure_logging(app: Flask):
-    level = app.config["LOGGING"]["LEVEL"]
-    app.logger.setLevel(level)
+def _add_ws_handler(app, socket_obj, conf):
+    """Set handler for realtime notification via websocket connection to all connected clients."""
+    formatter_conf = conf["FORMATTER"]
+    event_name = conf["EVENT_NAME"]
+    namespace = conf["NAMESPACE"]
+    level = conf["LEVEL"]
 
-    file_conf = app.config["LOGGING"]["FILE"]
-    add_file_handler(app=app, conf=file_conf)
+    handler = WebSocketHandler(socket_obj, event_name, level=level, namespace=namespace)
+    formatter = logging.Formatter(**formatter_conf)
+    handler.setFormatter(formatter)
 
-    # add websocket handler for realtime logs monitoring
-    ws_conf = app.config["LOGGING"]["WEBSOCKET"]
-    add_websocket_handler(app=app, socket_obj=socketio, conf=ws_conf)
+    app.logger.addHandler(handler)
