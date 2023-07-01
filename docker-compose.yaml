@@ -1,0 +1,54 @@
+services:
+  web-app:
+    build:
+      context: .
+    restart: always
+    ports:
+      - "5000:5000"
+    entrypoint: [ "./docker-entrypoint.sh" ]
+    depends_on:
+      - db
+    env_file:
+      - .env
+    environment:
+      - FLASK_APP=main/app
+
+  db:
+    image: postgres:14.7
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    env_file:
+      - .env
+
+  redis:
+    image: redis
+    restart: always
+
+  celery-worker:
+    restart: always
+    build:
+      context: .
+    command: celery -A main.make_celery worker -l info
+    depends_on:
+      - redis
+      - db
+    environment:
+      - FLASK_APP=main/app
+    env_file:
+      - .env
+
+
+  celery-beat:
+    restart: always
+    build:
+      context: .
+    command: celery -A main.make_celery beat -l info
+    depends_on:
+      - redis
+      - db
+    environment:
+      - FLASK_APP=main/app
+    env_file:
+      - .env
