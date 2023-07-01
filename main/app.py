@@ -5,9 +5,9 @@ from pathlib import Path
 
 import yaml
 from celery import Celery, Task
+from dotenv import load_dotenv
 from flask import Flask
 from flask_migrate import Migrate
-from flask_socketio import SocketIO
 from flask_sqlalchemy import SQLAlchemy
 
 from main import socketio
@@ -16,6 +16,7 @@ from main.logger import WebSocketHandler
 db = SQLAlchemy()
 
 BASE_PATH = Path(__file__).resolve().parent.parent
+load_dotenv(os.path.join(BASE_PATH, ".env"))
 
 
 def create_app():
