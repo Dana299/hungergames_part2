@@ -19,7 +19,8 @@ BASE_PATH = Path(__file__).resolve().parent.parent
 load_dotenv(os.path.join(BASE_PATH, ".env"))
 
 
-def create_app():
+def create_app(conf_file: str = "config.yaml"):
+    """Creating app factory."""
     app = Flask(__name__)
 
     if not os.path.isabs(conf_file):
@@ -58,6 +59,7 @@ def create_app():
 
 
 def celery_init_app(app: Flask) -> Celery:
+    """Initialize celery app."""
     class FlaskTask(Task):
         def __call__(self, *args: object, **kwargs: object) -> object:
             with app.app_context():

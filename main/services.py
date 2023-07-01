@@ -11,7 +11,7 @@ from main.utils.urlparser import parse_url
 
 
 def create_web_resource(validated_url: str) -> WebResource | None:
-    """Save WebResource instance in database."""
+    """Save WebResource instance in database if it does not already exist."""
     response = parse_url(url=validated_url)
 
     web_resource = WebResource(
@@ -188,6 +188,7 @@ def update_processing_request(
     is_finished: Optional[bool] = None,
     errors: Optional[int] = None,
 ):
+    """Update the given fields in the given processing request in DB."""
     if total_urls is not None:
         processing_request.total_urls = total_urls
 
