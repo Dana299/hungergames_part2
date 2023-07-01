@@ -11,6 +11,6 @@ app = create_app()
 
 from main import routes
 
-app.register_blueprint(blueprint=bp, url_prefix='/api')
+app.register_blueprint(blueprint=bp)
 socketio.init_app(app)
 app.logger.info("app started")

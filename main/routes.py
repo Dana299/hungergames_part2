@@ -1,9 +1,31 @@
-from flask import Response, jsonify, request, url_for
+from flask import Response, jsonify, render_template, request, url_for
 from pydantic import ValidationError
 
 from main import app, bp, services
 from main.db import schemas
 from main.tasks import process_urls_from_zip_archive
+
+
+@bp.route("/index", methods=["GET"])
+def index():
+    app.logger.info(f"GET - {request.url} visited")
+    return "<h1>hi Dana</h1>"
+
+
+@bp.route("/logs", methods=["GET"])
+def logs():
+    app.logger.info(f"GET - {request.url} visited")
+    return render_template("logs.html")
+
+
+@bp.route("/test_logs/", methods=["GET"])
+def test_logs():
+    # app.logger.exception("EXCEPTION")
+    app.logger.critical("critical")
+    app.logger.warning("warning")
+    app.logger.debug("debug")
+    app.logger.info("info")
+    return "<h1>Test log messages for all levels called. Check web log viewer</h1>"
 
 
 @bp.route("/resources/", methods=['POST'])
@@ -143,3 +165,6 @@ def post_image_for_resource(resource_uuid: int):
                 'message': e.errors()
             }
             return jsonify(response), 400
+
+
+

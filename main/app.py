@@ -1,4 +1,5 @@
 import logging
+import os
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
@@ -21,6 +22,13 @@ def create_app():
     app = Flask(__name__)
     app.config.from_file(str(BASE_PATH) + '/config.yaml', load=yaml.safe_load)
 
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://{}:{}@{}/{}'.format(
+        os.getenv('POSTGRES_USER', 'flask'),
+        os.getenv('POSTGRES_PASSWORD', ''),
+        os.getenv('POSTGRES_HOST', 'localhost'),
+        os.getenv('POSTGRES_DB', 'flask')
+    )
+
     db.init_app(app)
     migrate = Migrate(app=app, db=db)
 
@@ -28,8 +36,8 @@ def create_app():
 
     app.config.from_mapping(
         CELERY=dict(
-            broker_url="redis://localhost:6379/0",
-            result_backend="redis://localhost:6379/0",
+            broker_url="redis://{}:6379".format(os.getenv("BROKER_URL_HOST")),
+            result_backend="redis://{}:6379".format(os.getenv("RESULT_BACKEND_HOST")),
             task_ignore_result=True,
             broker_connection_retry_on_startup=True,
         ),
@@ -91,6 +99,6 @@ def configure_logging(app: Flask):
     file_conf = app.config["LOGGING"]["FILE"]
     add_file_handler(app=app, conf=file_conf)
 
+    # add websocket handler for realtime logs monitoring
     ws_conf = app.config["LOGGING"]["WEBSOCKET"]
-
     add_websocket_handler(app=app, socket_obj=socketio, conf=ws_conf)
