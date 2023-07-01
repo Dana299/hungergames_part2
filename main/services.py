@@ -1,6 +1,7 @@
 from typing import List, Optional
 
-from sqlalchemy import select
+from sqlalchemy import desc
+from sqlalchemy.orm.query import Query
 from werkzeug.datastructures import FileStorage
 
 from main.app import db
@@ -30,36 +31,38 @@ def create_web_resource(validated_url: str) -> WebResource:
 def get_web_resources(
     domain_zone: Optional[str] = None,
     resource_id: Optional[int] = None,
-    resource_uuid: Optional[int] = None,
+    resource_uuid: Optional[str] = None,
     is_available: Optional[bool] = None,
-    times_unavailable: Optional[int] = None,
-) -> List[WebResource]:
+) -> Query:
     """Get all WebResource instances from database with the given criteria."""
 
-    query = select(WebResource)
+    # base query
+    query = db.session.query(
+        WebResource.id,
+        WebResource.full_url,
+        WebResourceStatus.status_code
+    ).join(
+        WebResourceStatus,
+        WebResource.id == WebResourceStatus.resource_id,
+        isouter=True
+    ).order_by(
+        WebResource.id.desc(),
+        desc(WebResourceStatus.request_time)  # Сортируем по убыванию времени статуса
+    ).distinct(
+        WebResource.id
+    )
 
-    if domain_zone is not None:
-        query = query.where(WebResource.domain_zone == domain_zone)
+    # applying filters to query
+    if domain_zone:
+        query = query.filter(WebResource.domain_zone == domain_zone)
+    if resource_id:
+        query = query.filter(WebResource.id == resource_id)
+    if resource_uuid:
+        query = query.filter(WebResource.uuid == resource_uuid)
+    if is_available:
+        query = query.filter(WebResourceStatus.is_available == is_available)
 
-    if resource_id is not None:
-        query = query.where(WebResource.id == resource_id)
-
-    if resource_uuid is not None:
-        query = query.where(WebResource.uuid == resource_uuid)
-
-    if is_available is not None:
-        if is_available:
-            query = query.where(WebResource.unavailable_count == 0)
-
-        if is_available is False:
-            query = query.where(WebResource.unavailable_count > 0)
-
-    if times_unavailable is not None:
-        query = query.where(WebResource.unavailable_count >= times_unavailable)
-
-    resources = db.session.scalars(query)
-
-    return resources
+    return query
 
 
 def delete_web_resource_by_id(resource_id: int) -> bool:

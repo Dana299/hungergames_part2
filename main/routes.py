@@ -1,31 +1,44 @@
 from flask import Response, jsonify, render_template, request, url_for
 from pydantic import ValidationError
 
-from main import app, bp, services
-from main.db import schemas
+from main import bp, services, app
+from main.db import models, schemas
 from main.tasks import process_urls_from_zip_archive
+from main.utils.helpers import make_int
 
 
-@bp.route("/index", methods=["GET"])
-def index():
-    app.logger.info(f"GET - {request.url} visited")
-    return "<h1>hi Dana</h1>"
+@app.route('/resources', methods=['GET'])
+def get_resources():
+    # extract query params
+    domain_zone = request.args.get('domain_zone')
+    resource_id = make_int(request.args.get('id'))
+    uuid = request.args.get('uuid')
+    availability = request.args.get('availability')
+    page = make_int(request.args.get('page', default=1, type=int))
+    per_page = make_int(request.args.get('per_page', default=10, type=int))
 
+    availability_dict = {
+        "true": True,
+        "false": False,
+        None: None,
+    }
 
-@bp.route("/logs", methods=["GET"])
-def logs():
-    app.logger.info(f"GET - {request.url} visited")
-    return render_template("logs.html")
+    query = services.get_web_resources(
+        domain_zone=domain_zone,
+        resource_id=resource_id,
+        resource_uuid=uuid,
+        is_available=availability_dict.get(availability),
+    )
 
+    # Пагинация результатов
+    response = models.WebResource.get_paginated(
+        query,
+        page,
+        per_page,
+        'get_resources',
+    )
 
-@bp.route("/test_logs/", methods=["GET"])
-def test_logs():
-    # app.logger.exception("EXCEPTION")
-    app.logger.critical("critical")
-    app.logger.warning("warning")
-    app.logger.debug("debug")
-    app.logger.info("info")
-    return "<h1>Test log messages for all levels called. Check web log viewer</h1>"
+    return jsonify(response)
 
 
 @bp.route("/resources/", methods=['POST'])
@@ -39,24 +52,30 @@ def create_url():
 
         try:
             validated_url = schemas.RequestSchema(**body)
+
+            # check whether resource already exists in DB
             web_resource = services.create_web_resource(validated_url.url)
 
-            response_data = schemas.ResponseSchema(
-                uuid=web_resource.uuid,
-                protocol=web_resource.protocol,
-                domain=web_resource.domain,
-                domain_zone=web_resource.domain_zone,
-                url_path=web_resource.url_path,
-                query_params=web_resource.query_params,
-            )
+            if not web_resource:
+                return jsonify({'error': 'Web resource already exists'}), 409
 
-            app.logger.info(f"201 - User posted new URL on {url_for('.create_url')}")
+            else:
+                response_data = schemas.ResponseSchema(
+                    uuid=web_resource.uuid,
+                    protocol=web_resource.protocol,
+                    domain=web_resource.domain,
+                    domain_zone=web_resource.domain_zone,
+                    url_path=web_resource.url_path,
+                    query_params=web_resource.query_params,
+                )
 
-            return Response(
-                response_data.json(),
-                status=201,
-                mimetype='application/json',
-            )
+                app.logger.info(f"201 - User posted new URL on {url_for('.create_url')}")
+
+                return Response(
+                    response_data.json(),
+                    status=201,
+                    mimetype='application/json',
+                )
 
         except ValidationError as e:
             app.logger.info(f"400 - User made bad request to {request.url}")
