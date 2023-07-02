@@ -30,9 +30,15 @@ def create_web_resource(validated_url: str) -> WebResource | None:
         return None
 
     else:
-    db.session.add(web_resource)
-    db.session.commit()
-    return web_resource
+        db.session.add(web_resource)
+        db.session.commit()
+
+        create_newsfeed_item(
+            resource=web_resource,
+            event=NewsFeedItem.EventType.RESOURCE_ADDED,
+        )
+
+        return web_resource
 
 
 def get_web_resources_query(
