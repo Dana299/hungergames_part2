@@ -5,7 +5,7 @@ from sqlalchemy.orm.query import Query
 from werkzeug.datastructures import FileStorage
 
 from main.app import db
-from main.db.models import (FileProcessingRequest, WebResource,
+from main.db.models import (FileProcessingRequest, NewsFeedItem, WebResource,
                             WebResourceStatus)
 from main.utils.urlparser import parse_url
 
@@ -29,6 +29,7 @@ def create_web_resource(validated_url: str) -> WebResource | None:
     if existing_resource:
         return None
 
+    else:
     db.session.add(web_resource)
     db.session.commit()
     return web_resource
@@ -98,6 +99,11 @@ def delete_web_resource(resource: WebResource):
     db.session.delete(resource)
     db.session.commit()
 
+    create_newsfeed_item(
+        resource=resource,
+        event=NewsFeedItem.EventType.RESOURCE_DELETED,
+    )
+
 
 def save_status_code_for_web_resource_response(
     resource: WebResource,
@@ -134,6 +140,11 @@ def add_image_to_resource(resource: WebResource, image: FileStorage):
     resource.screenshot = image.read()
     db.session.add(resource)
     db.session.commit()
+
+    create_newsfeed_item(
+        resource=resource,
+        event=NewsFeedItem.EventType.PHOTO_ADDED,
+    )
 
 
 def create_file_processing_request() -> int:
@@ -212,3 +223,20 @@ def update_processing_request(
 
     db.session.add(processing_request)
     db.session.commit()
+
+
+def create_newsfeed_item(resource, event):
+    """Create new NewsFeedItem in DB with the given event for the given resource."""
+
+    news_item = NewsFeedItem(
+        event_type=event,
+        resource=resource
+    )
+
+    db.session.add(news_item)
+    db.session.commit()
+
+
+def get_resource_page(resource_id: int):
+    """Get all WebResource data including related."""
+    ...

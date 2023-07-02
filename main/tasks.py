@@ -6,6 +6,7 @@ from pydantic import ValidationError
 
 from main import services
 from main.db import schemas
+from main.db.models import NewsFeedItem
 from main.utils import ziploader
 
 
@@ -18,6 +19,9 @@ def get_response_from_resources():
     resources_from_db = services.get_web_resources_query().all()
 
     for resource in resources_from_db:
+
+        last_availability = resource.is_available
+
         try:
             response = requests.get(resource.full_url)
             status_code = response.status_code
@@ -26,6 +30,7 @@ def get_response_from_resources():
         except requests.RequestException:
             is_available = False
             status_code = 404
+
         finally:
             services.update_counter_for_resource_availability(
                 resource=resource,
@@ -36,6 +41,13 @@ def get_response_from_resources():
                 status_code=response.status_code,
                 is_available=is_available,
             )
+
+            # add newsfeed item if status has changed from the last time
+            if last_availability != is_available:
+                services.create_newsfeed_item(
+                    resource=resource,
+                    event=NewsFeedItem.EventType.STATUS_CHANGED,
+                )
 
 
 @shared_task

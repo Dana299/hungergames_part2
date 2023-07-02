@@ -1,4 +1,5 @@
 import uuid
+from enum import Enum
 
 from flask import url_for
 from sqlalchemy.dialects.postgresql import JSON, UUID
@@ -51,6 +52,7 @@ class WebResource(PaginationMixin, db.Model):
     unavailable_count = db.Column(db.Integer, default=0)
     screenshot = db.Column(db.LargeBinary, nullable=True)
     status_codes = relationship("WebResourceStatus", back_populates="resource")
+    news_feed_items = relationship("NewsFeedItem", back_populates="resource")
 
 
 class WebResourceStatus(db.Model):
@@ -70,3 +72,19 @@ class FileProcessingRequest(db.Model):
     processed_urls = db.Column(db.Integer, nullable=True, default=None)
     errors = db.Column(db.Integer, nullable=True, default=None)
     is_finished = db.Column(db.Boolean, default=False)
+
+
+class NewsFeedItem(db.Model):
+    """Model for news feed items."""
+
+    class EventType(Enum):
+        STATUS_CHANGED = 'status_changed'
+        RESOURCE_ADDED = 'resource_added'
+        RESOURCE_DELETED = 'resource_deleted'
+        PHOTO_ADDED = "photo_added"
+
+    id = db.Column(db.Integer, primary_key=True)
+    event_type = db.Column(db.Enum(EventType), nullable=False)
+    resource_id = db.Column(db.Integer, db.ForeignKey(WebResource.id))
+    resource = relationship("WebResource", back_populates="news_feed_items")
+    timestamp = db.Column(db.DateTime(timezone=True), server_default=func.now())
