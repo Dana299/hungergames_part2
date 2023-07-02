@@ -20,19 +20,21 @@ def get_response_from_resources():
     for resource in resources_from_db:
         try:
             response = requests.get(resource.full_url)
-            is_available = True if response.status_code in range(200, 400) else False
-            services.save_status_code_for_web_resource_response(
-                resource=resource,
-                status_code=response.status_code,
-                is_available=is_available,
-            )
+            status_code = response.status_code
+            is_available = True if status_code in range(200, 400) else False
 
         except requests.RequestException:
             is_available = False
+            status_code = 404
         finally:
             services.update_counter_for_resource_availability(
                 resource=resource,
                 is_available=is_available
+            )
+            services.save_status_code_for_web_resource_response(
+                resource=resource,
+                status_code=response.status_code,
+                is_available=is_available,
             )
 
 
