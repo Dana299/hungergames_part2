@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+<title>{% block title %} Add link page {% endblock %}</title>
+
+{% block content %}
+    <div class="container mt-4">
+        <h1>Add New Web Resources</h1>
+        <hr>
+        <form>
+            <div class="form-group">
+                <label for="resourceUrl">URL</label>
+                <input type="text" class="form-control" id="resourceUrl" placeholder="Enter URL">
+            </div>
+            <button type="submit" class="btn btn-primary">Add</button>
+        </form>
+    </div>
+{% endblock %}

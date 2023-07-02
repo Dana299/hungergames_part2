@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+{% extends 'base.html' %}
+
+{% block title %} Log Viewer {% endblock %}
+
+{% block content %}
+    <style>
+        #logs {
+            height: 400px;
+            overflow-y: scroll;
+            background-color: lightpink;
+            border: 1px solid black;
+            padding: 10px;
+        }
+
+
+        {# ----------- background params for log messages ------------ #}
+        .log-entry {
+            font-size: small;
+            margin-bottom: 10px;
+            padding: 5px;
+            background-color: white;
+            border: 1px solid black;
+            border-radius: 4px;
+        }
+
+        .ERROR {
+            font-weight: bold;
+            background: darkred;
+        }
+
+        .CRITICAL {
+            font-weight: bold;
+            background: red;
+        }
+
+        .WARNING {
+            font-weight: bolder;
+            background: orange;
+        }
+
+        .INFO {
+            background: deepskyblue;
+        }
+
+        .DEBUG {
+            background: skyblue;
+        }
+    </style>
+    <div class="container">
+        <div class="row">
+            <div class="col">
+                <h1 class="text-center mb-4">Log Viewer</h1>
+
+                <label class="m-1 p-1 autoscroll">
+                    Auto-scroll
+                    <input id="autoscroll" type="checkbox" checked>
+                </label>
+                {#                <button class="btn btn-primary" onclick="generatePDF()">Save PDF</button>#}
+                <div id="logs" class="mb-4">
+                    <!-- Log messages will be dynamically added here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.4/socket.io.js"
+            integrity="sha512-aMGMvNYu8Ue4G+fHa359jcPb1u+ytAF+P2SCb+PxrjCdO3n3ZTxJ30zuH39rimUggmTwmh2u7wvQsDTHESnmfQ=="
+            crossorigin="anonymous"></script>
+    <script>
+        var socket = io('http://' + document.domain + ':' + location.port + '/logs');
+
+        const wind_elem = document.getElementById("logs");
+
+        socket.on('connect', function () {
+            console.log('Connected to the server');
+        });
+
+        socket.on('init_logs', function (data) {
+            for (let i in data.logs.reverse()) {
+                let elem = document.createElement("p");
+                elem.className = "log-entry";
+
+                elem.classList.add(data.logs[i].level);
+                elem.textContent = data.logs[i].message;
+                wind_elem.prepend(elem)
+            }
+            if (document.getElementById("autoscroll").checked) {
+                wind_elem.lastElementChild.scrollIntoView();
+            }
+        })
+        socket.on('new_log', function (data) {
+            let elem = document.createElement("p");
+
+            elem.className = "log-entry";
+            elem.classList.add(data.level);
+
+            elem.textContent = data.message;
+
+            wind_elem.appendChild(elem);
+            // Scroll to new added element is autoscroll checked
+            if (document.getElementById("autoscroll").checked) {
+                elem.scrollIntoView();
+            }
+
+            {#document.getElementById("logs").scrollIntoView();#}
+        });
+    </script>
+
+    <!--- Generate pdf ---->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.0.272/jspdf.debug.js"></script>
+{#    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>#}
+
+    <script>
+        function generatePDF() {
+            var pdf = new jsPDF({
+                    orientation: 'p',
+                    unit: 'mm',
+                    format: 'a5',
+                    putOnlyUsedFonts: true,
+                }
+            );
+            pdf.setFontSize(10);
+            const pageHeight = 297;
+            const pageWidth = 210;
+            let posY = 5;
+            const margin = 5;
+
+            pdf.text("Log viewer", 10, posY + 4);
+            posY += 4;
+
+            const childNodes = wind_elem.childNodes;
+            for (let i = 0; i < childNodes.length; i++) {
+                // Calculate the remaining space on the page
+                const remainingSpace = pageHeight - posY - margin;
+                console.log(remainingSpace)
+                node = childNodes[i];
+                if (node.nodeType === Node.ELEMENT_NODE) {
+                    // Do something with each child element
+                    pdf.text(node.textContent, 10, posY + 4);
+                    if (remainingSpace < 20) {
+                        // If there is not enough space, add a new page
+                        pdf.addPage();
+                        posY = margin;
+                    }
+                    posY += 4;
+                }
+            }
+            pdf.save('app_logs.pdf')
+        }
+    </script>
+    <button class="btn btn-primary" onclick="generatePDF()">Save PDF</button>
+
+{% endblock content %}

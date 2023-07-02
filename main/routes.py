@@ -213,3 +213,31 @@ def get_resource_page(resource_uuid):
             data.append(news_dict)
 
         return jsonify(url=news_item.resource.full_url, events=data)
+
+
+@bp.route("/index", methods=["GET"])
+def index():
+    app.logger.info(f"GET - {request.url} visited")
+    return "<h1>hi Dana</h1>"
+
+
+@bp.route("/logs", methods=["GET"])
+def get_logs():
+    app.logger.info(f"GET - {request.url} visited")
+    return render_template("logs.html")
+
+
+@bp.route("/add_resource", methods=["GET", "POST"])
+def add_resource():
+    app.logger.info("User visit add_resource page")
+    return render_template('add_resource.html')
+
+
+@bp.route("/test_logs/", methods=["GET"])
+def test_logs():
+    # app.logger.exception("EXCEPTION")
+    app.logger.critical("critical")
+    app.logger.warning("warning")
+    app.logger.debug("debug")
+    app.logger.info("info")
+    return "<h1>Test log messages for all levels called. Check web log viewer</h1>"
