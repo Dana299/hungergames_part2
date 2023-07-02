@@ -23,7 +23,8 @@ def get_resources():
         None: None,
     }
 
-    query = services.get_web_resources(
+    query = services.get_web_resources_query(
+        left_join=True,
         domain_zone=domain_zone,
         resource_id=resource_id,
         resource_uuid=uuid,

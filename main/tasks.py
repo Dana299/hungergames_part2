@@ -15,7 +15,7 @@ def get_response_from_resources():
 
     # for future: distribute all urls between multiple celery workers.
 
-    resources_from_db = services.get_web_resources()
+    resources_from_db = services.get_web_resources_query().all()
 
     for resource in resources_from_db:
         try:

@@ -34,41 +34,50 @@ def create_web_resource(validated_url: str) -> WebResource | None:
     return web_resource
 
 
-def get_web_resources(
+def get_web_resources_query(
+    left_join: bool = False,
     domain_zone: Optional[str] = None,
     resource_id: Optional[int] = None,
     resource_uuid: Optional[str] = None,
     is_available: Optional[bool] = None,
 ) -> Query:
-    """Get all WebResource instances from database with the given criteria."""
+    """
+    Get all WebResource instances from database with the given criteria.
+    If left join is True then return query with relative data (status codes).
+    Else return query with all Web resources."""
 
-    # base query
-    query = db.session.query(
-        WebResource.id,
-        WebResource.full_url,
-        WebResourceStatus.status_code
-    ).join(
-        WebResourceStatus,
-        WebResource.id == WebResourceStatus.resource_id,
-        isouter=True
-    ).order_by(
-        WebResource.id.desc(),
-        desc(WebResourceStatus.request_time)  # Сортируем по убыванию времени статуса
-    ).distinct(
-        WebResource.id
-    )
+    if not left_join:
+        return db.session.query(WebResource)
 
-    # applying filters to query
-    if domain_zone:
-        query = query.filter(WebResource.domain_zone == domain_zone)
-    if resource_id:
-        query = query.filter(WebResource.id == resource_id)
-    if resource_uuid:
-        query = query.filter(WebResource.uuid == resource_uuid)
-    if is_available:
-        query = query.filter(WebResourceStatus.is_available == is_available)
+    else:
+        # base query
+        query = db.session.query(
+            WebResource.id,
+            WebResource.full_url,
+            WebResourceStatus.status_code,
+            WebResourceStatus.is_available
+        ).join(
+            WebResourceStatus,
+            WebResource.id == WebResourceStatus.resource_id,
+            isouter=True
+        ).order_by(
+            WebResource.id.desc(),
+            desc(WebResourceStatus.request_time)  # Сортируем по убыванию времени статуса
+        ).distinct(
+            WebResource.id
+        )
 
-    return query
+        # applying filters to query
+        if domain_zone:
+            query = query.filter(WebResource.domain_zone == domain_zone)
+        if resource_id:
+            query = query.filter(WebResource.id == resource_id)
+        if resource_uuid:
+            query = query.filter(WebResource.uuid == resource_uuid)
+        if is_available:
+            query = query.filter(WebResourceStatus.is_available == is_available)
+
+        return query
 
 
 def delete_web_resource_by_id(resource_id: int) -> bool:
