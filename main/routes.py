@@ -7,7 +7,7 @@ from main.tasks import process_urls_from_zip_archive
 from main.utils.helpers import make_int
 
 
-@app.route('/resources', methods=['GET'])
+@app.route('/resources/', methods=['GET'])
 def get_resources():
     # extract query params
     domain_zone = request.args.get('domain_zone')
@@ -194,7 +194,7 @@ def connect():
     socketio.emit(event="init_logs", data={"logs": logs}, namespace="/logs")
 
 
-@bp.route("/resources/<resource_uuid>", methods=["GET"])
+@bp.route("/resources/<resource_uuid>/", methods=["GET"])
 def get_resource_page(resource_uuid):
     resource = services.get_resource_by_uuid(uuid_=resource_uuid)
 
@@ -215,19 +215,19 @@ def get_resource_page(resource_uuid):
         return jsonify(url=news_item.resource.full_url, events=data)
 
 
-@bp.route("/index", methods=["GET"])
+@bp.route("/index/", methods=["GET"])
 def index():
     app.logger.info(f"GET - {request.url} visited")
     return "<h1>hi Dana</h1>"
 
 
-@bp.route("/logs", methods=["GET"])
+@bp.route("/logs/", methods=["GET"])
 def get_logs():
     app.logger.info(f"GET - {request.url} visited")
     return render_template("logs.html")
 
 
-@bp.route("/add_resource", methods=["GET", "POST"])
+@bp.route("/add_resource/", methods=["GET", "POST"])
 def add_resource():
     app.logger.info("User visit add_resource page")
     return render_template('add_resource.html')
