@@ -139,7 +139,7 @@ def update_counter_for_resource_availability(resource: WebResource, is_available
     db.session.commit()
 
 
-def get_resource_by_uuid(uuid_: int) -> WebResource:
+def get_resource_by_uuid(uuid_: str) -> WebResource:
     resource = WebResource.query.filter_by(uuid=uuid_).first()
     return resource
 
@@ -150,10 +150,10 @@ def add_image_to_resource(resource: WebResource, image: FileStorage):
     db.session.add(resource)
     db.session.commit()
 
-    create_newsfeed_item(
-        resource=resource,
-        event=NewsFeedItem.EventType.PHOTO_ADDED,
-    )
+    # create_newsfeed_item(
+    #     resource=resource,
+    #     event=NewsFeedItem.EventType.PHOTO_ADDED,
+    # )
 
 
 def create_file_processing_request() -> int:

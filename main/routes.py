@@ -136,7 +136,7 @@ def create_url():
         ), 400
 
 
-@bp.route("/resources/<web_resource_id>/", methods=['DELETE'])
+@bp.route("/resources/<int:web_resource_id>/", methods=['DELETE'])
 def delete_url_structure(web_resource_id: int):
     found_and_deleted = services.delete_web_resource_by_id(web_resource_id)
 
@@ -148,7 +148,7 @@ def delete_url_structure(web_resource_id: int):
         return Response(status=404)
 
 
-@bp.route("/processing-requests/<request_id>/", methods=["GET"])
+@bp.route("/processing-requests/<int:request_id>/", methods=["GET"])
 def get_status_of_processing_request(request_id: int):
     processing_request = services.get_file_processing_request_by_id(request_id=request_id)
 
@@ -164,8 +164,8 @@ def get_status_of_processing_request(request_id: int):
     return jsonify(response)
 
 
-@bp.route("/resources/<resource_uuid>/", methods=["POST"])
-def post_image_for_resource(resource_uuid: int):
+@bp.route("/resources/<uuid:resource_uuid>/", methods=["POST"])
+def post_image_for_resource(resource_uuid: str):
     """Router for posting images for resource with the given UUID."""
     resource = services.get_resource_by_uuid(resource_uuid)
 
@@ -194,7 +194,7 @@ def connect():
     socketio.emit(event="init_logs", data={"logs": logs}, namespace="/logs")
 
 
-@bp.route("/resources/<resource_uuid>/", methods=["GET"])
+@bp.route("/resources/<uuid:resource_uuid>/", methods=["GET"])
 def get_resource_page(resource_uuid):
     resource = services.get_resource_by_uuid(uuid_=resource_uuid)
 

@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from flask import Flask
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
+from werkzeug.routing import IntegerConverter, UUIDConverter
 
 from main import log_buffer, socketio
 from main.logger import LogBufferHandler, WebSocketHandler
@@ -42,6 +43,9 @@ def create_app(conf_file: str = "config.yaml"):
 
     db.init_app(app)
     migrate = Migrate(app=app, db=db)
+
+    app.url_map.converters['int'] = IntegerConverter
+    app.url_map.converters['uuid'] = UUIDConverter
 
     configure_logging(app=app)
 
