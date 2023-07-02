@@ -51,8 +51,10 @@ def get_response_from_resources():
 
 
 @shared_task
-def delete_unavailable_resources(times_unavailable: int):
-    unavailable_resources = services.get_web_resources(times_unavailable=times_unavailable)
+def delete_unavailable_resources(unavailable_count: int):
+    unavailable_resources = services.get_web_resources_query(
+        unavailable_count=unavailable_count,
+    )
 
     for resource in unavailable_resources:
         services.delete_web_resource(resource=resource)

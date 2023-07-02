@@ -41,6 +41,7 @@ def get_web_resources_query(
     resource_id: Optional[int] = None,
     resource_uuid: Optional[str] = None,
     is_available: Optional[bool] = None,
+    unavailable_count: Optional[int] = None,
 ) -> Query:
     """
     Get all WebResource instances from database with the given criteria.
@@ -48,7 +49,7 @@ def get_web_resources_query(
     Else return query with all Web resources."""
 
     if not left_join:
-        return db.session.query(WebResource)
+        query = db.session.query(WebResource)
 
     else:
         # base query
@@ -69,16 +70,18 @@ def get_web_resources_query(
         )
 
         # applying filters to query
-        if domain_zone:
-            query = query.filter(WebResource.domain_zone == domain_zone)
-        if resource_id:
-            query = query.filter(WebResource.id == resource_id)
-        if resource_uuid:
-            query = query.filter(WebResource.uuid == resource_uuid)
-        if is_available:
-            query = query.filter(WebResourceStatus.is_available == is_available)
+    if domain_zone:
+        query = query.filter(WebResource.domain_zone == domain_zone)
+    if resource_id:
+        query = query.filter(WebResource.id == resource_id)
+    if resource_uuid:
+        query = query.filter(WebResource.uuid == resource_uuid)
+    if is_available:
+        query = query.filter(WebResourceStatus.is_available == is_available)
+    if unavailable_count:
+        query = query.filter(WebResource.unavailable_count >= unavailable_count)
 
-        return query
+    return query
 
 
 def delete_web_resource_by_id(resource_id: int) -> bool:
