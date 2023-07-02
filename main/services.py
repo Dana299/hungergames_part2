@@ -237,6 +237,17 @@ def create_newsfeed_item(resource, event):
     db.session.commit()
 
 
-def get_resource_page(resource_id: int):
+def get_resource_page(resource_uuid: int):
     """Get all WebResource data including related."""
-    ...
+    resource = WebResource.query.filter(WebResource.uuid == resource_uuid).first()
+
+    if not resource:
+        return None
+
+    # Join the News and StatusCode tables with the WebResource table
+    query = db.session.query(WebResource, NewsFeedItem, WebResourceStatus).\
+        join(NewsFeedItem, WebResource.id == NewsFeedItem.resource_id, isouter=True).\
+        join(WebResourceStatus, WebResourceStatus.resource_id == WebResource.id, isouter=True).\
+        filter(WebResource.uuid == resource_uuid)
+    # Execute the query and retrieve the results
+    return query.all()

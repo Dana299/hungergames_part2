@@ -192,3 +192,24 @@ def connect():
     # app.logger.info("Websocket connection to /logs page")
     logs = log_buffer
     socketio.emit(event="init_logs", data={"logs": logs}, namespace="/logs")
+
+
+@bp.route("/resources/<resource_uuid>", methods=["GET"])
+def get_resource_page(resource_uuid):
+    resource = services.get_resource_by_uuid(uuid_=resource_uuid)
+
+    if not resource:
+        return "<h1>Not Found</h1>"
+
+    else:
+        page = services.get_resource_page(resource_uuid=resource_uuid)
+        data = []
+        for item in page:
+            news_item = item[1]  # NewsFeedItem находится на второй позиции в кортеже
+            news_dict = {
+                "event_type": news_item.event_type.value,
+                "timestamp": news_item.timestamp.isoformat()
+            }
+            data.append(news_dict)
+
+        return jsonify(url=news_item.resource.full_url, events=data)
