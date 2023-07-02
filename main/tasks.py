@@ -20,7 +20,7 @@ def get_response_from_resources():
 
     for resource in resources_from_db:
 
-        last_availability = resource.is_available
+        last_availability = resource.status_codes[-1].is_available if resource.status_codes else None
 
         try:
             response = requests.get(resource.full_url)
