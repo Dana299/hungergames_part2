@@ -3,7 +3,9 @@ celery==5.3.1
 Flask==2.3.2
 Flask-Migrate==4.0.4
 Flask-Pydantic==0.11.0
+Flask-SocketIO==5.3.4
 Flask-SQLAlchemy==3.0.5
+pre-commit==3.3.3
 psycopg2-binary==2.9.6
 pyaml==23.5.9
 pydantic==1.10.9
@@ -12,4 +14,3 @@ PyYAML==6.0
 redis==4.6.0
 requests==2.31.0
 SQLAlchemy==2.0.16
-flask-socketio==5.3.4
