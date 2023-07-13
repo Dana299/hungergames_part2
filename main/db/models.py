@@ -5,8 +5,23 @@ from flask import url_for
 from sqlalchemy.dialects.postgresql import JSON, UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+from sqlalchemy.types import ARRAY
 
 from main.app import db
+
+
+class StatusOption(Enum):
+    INPROCESS = "in_process"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+    PENDING = "pending"
+
+
+class EventType(Enum):
+    STATUS_CHANGED = 'status_changed'
+    RESOURCE_ADDED = 'resource_added'
+    RESOURCE_DELETED = 'resource_deleted'
+    PHOTO_ADDED = "photo_added"
 
 
 class PaginationMixin():
@@ -68,21 +83,16 @@ class WebResourceStatus(db.Model):
 class FileProcessingRequest(db.Model):
     """Model for requests for processing URLs from file. Tracked by Celery."""
     id = db.Column(db.Integer, primary_key=True)
-    total_urls = db.Column(db.Integer, nullable=True, default=None)
-    processed_urls = db.Column(db.Integer, nullable=True, default=None)
-    errors = db.Column(db.Integer, nullable=True, default=None)
-    is_finished = db.Column(db.Boolean, default=False)
+    status = db.Column(db.Enum(StatusOption), default=StatusOption.PENDING, nullable=False)
+    task_id = db.Column(db.String, index=True, nullable=True)
+    total_count = db.Column(db.Integer, nullable=True, default=None)
+    processed_count = db.Column(db.Integer, nullable=True, default=None)
+    errors_count = db.Column(db.Integer, nullable=True, default=None)
+    error_urls = db.Column(ARRAY(db.String), default=[])
 
 
 class NewsFeedItem(db.Model):
     """Model for news feed items."""
-
-    class EventType(Enum):
-        STATUS_CHANGED = 'status_changed'
-        RESOURCE_ADDED = 'resource_added'
-        RESOURCE_DELETED = 'resource_deleted'
-        PHOTO_ADDED = "photo_added"
-
     id = db.Column(db.Integer, primary_key=True)
     event_type = db.Column(db.Enum(EventType), nullable=False)
     resource_id = db.Column(db.Integer, db.ForeignKey(WebResource.id))
