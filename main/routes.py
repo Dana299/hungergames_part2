@@ -4,7 +4,7 @@ from pydantic import ValidationError
 from main import app, bp, log_buffer, services, socketio
 from main.db import models, schemas
 from main.tasks import process_urls_from_zip_archive
-from main.utils.helpers import make_int
+from main.utils.helpers import convert_to_serializable, make_int
 
 
 @app.route('/resources/', methods=['GET'])
@@ -80,9 +80,10 @@ def create_url():
 
         except ValidationError as e:
             app.logger.info(f"400 - User made bad request to {request.url}")
+            errors = convert_to_serializable(e.errors())
             response = {
                 'error': 'Validation error',
-                'message': e.errors()
+                'message': errors,
             }
             return jsonify(response), 400
 
@@ -121,9 +122,10 @@ def create_url():
             )
 
         except ValidationError as e:
+            errors = convert_to_serializable(e.errors())
             response = {
                 'error': 'Validation error',
-                'message': e.errors()
+                'message': errors,
             }
             return jsonify(response), 400
 
@@ -180,9 +182,10 @@ def post_image_for_resource(resource_uuid: str):
             return Response(status=201)
         except ValidationError as e:
             # app.logger.info(f""")
+            errors = convert_to_serializable(e.errors())
             response = {
                 'error': 'Validation error',
-                'message': e.errors()
+                'message': errors,
             }
             return jsonify(response), 400
 
