@@ -6,12 +6,210 @@
     <div class="container mt-4">
         <h1>Add New Web Resources</h1>
         <hr>
-        <form>
+
+        <form id="text-form">
             <div class="form-group">
-                <label for="resourceUrl">URL</label>
-                <input type="text" class="form-control" id="resourceUrl" placeholder="Enter URL">
+                <label for="resourceUrl">Добавьте ссылку для обработки:</label>
+                <input type="text" class="form-control" id="resourceUrl" placeholder="Enter URL" name="url">
             </div>
-            <button type="submit" class="btn btn-primary">Add</button>
+            <div id="send-text-message" class="alert" style="display:none;"></div>
+            <button type="submit" class="btn btn-primary" disabled id="sendUrlButton">Отправить</button>
         </form>
+
+        <form id="file-form">
+            <div class="form-group">
+                <label for="formFile" class="form-label">Или прикрепите ZIP архив с CSV файлом, в котором каждая строка - ссылка:</label>
+                <input type="file" class="form-control" id="formFile">
+            </div>
+            <div id="send-file-message" class="alert" style="display:none;">Файл был успешно отправлен.</div>
+            <button type="submit" class="btn btn-primary" disabled id="sendFileButton">Отправить</button>
+        </form>
+
+        <hr>
+
+        <div id="result-container" style="display:none">
+            <h2>Результат обработки:</h2>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Составная часть</th>
+                        <th>Значение</th>
+                    </tr>
+                </thead>
+                <tbody id="result-content">
+                    <!-- String with the result. -->
+                </tbody>
+            </table>
+        </div>
+
     </div>
+
+
+<script>
+    const textInput = document.getElementById('resourceUrl')
+    const sendUrlButton = document.getElementById('sendUrlButton');
+    const fileInput = document.getElementById('formFile');
+    const sendFileButton = document.getElementById('sendFileButton');
+
+    const textForm = document.getElementById('text-form');
+    const fileForm = document.getElementById('file-form');
+
+
+    fileInput.addEventListener('input', () => {
+        if (fileInput.files.length > 0) {
+            sendFileButton.disabled = false;
+        } else {
+            sendFileButton.disabled = true;
+        }
+    });
+
+    textInput.addEventListener('input', () => {
+        if (textInput.value.trim() !== '') {
+            sendUrlButton.disabled = false;
+        } else {
+            sendUrlButton.disabled = true;
+        }
+    });
+
+    textForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        var xhr = new XMLHttpRequest();
+
+        var data = {
+            url: textInput.value
+        };
+
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === XMLHttpRequest.DONE) {
+                const resultMessage = document.getElementById('send-text-message');
+
+                if (xhr.status === 201) {
+                    textForm.reset();
+                    resultMessage.style.display = "block";
+                    resultMessage.classList.toggle('alert-success', true);
+                    resultMessage.classList.toggle('alert-danger', false);
+                    resultMessage.innerHTML = "Ссылка успешно добавлена.";
+
+                    var resultData = JSON.parse(xhr.responseText)
+                    var resultContainer = document.getElementById('result-container')
+                    var resultContent = document.getElementById('result-content');
+
+                    resultContainer.style.display = "block";
+                    resultContent.innerHTML = '';
+
+                    var keyMappings = {
+                        "uuid": "UUID",
+                        "protocol": "Протокол",
+                        "domain": "Домен",
+                        "domain_zone": "Доменная зона",
+                        "url_path": "Путь",
+                        "query_params": "Query-параметры"
+                    };
+
+                    // add strings to table
+                    for (var key in resultData) {
+                        var row = document.createElement('tr');
+                        var keyCell = document.createElement('td');
+                        var valueCell = document.createElement('td');
+
+                        var alternativeKey = keyMappings[key] || key;
+                        keyCell.textContent = alternativeKey;
+
+                        if (key === 'query_params') {
+                            valueCell.style.fontStyle = 'italic';
+                            valueCell.textContent = Object.entries(resultData[key])
+                            .map(([paramKey, paramValue]) => `${paramKey} = ${paramValue}`)
+                            .join('\n');
+
+                        } else {
+                            valueCell.textContent = resultData[key];
+                        }
+
+                        row.appendChild(keyCell);
+                        row.appendChild(valueCell);
+
+                        resultContent.appendChild(row);
+                    }
+
+                } else if (xhr.status === 400) {
+
+                    var parsedResponse = JSON.parse(xhr.responseText);
+                    var errorMessage = parsedResponse.message[0].type;
+
+                    resultMessage.style.display = "block";
+                    resultMessage.classList.toggle('alert-success', false);
+                    resultMessage.classList.toggle('alert-danger', true);
+
+                    if (errorMessage === "value_error.url.scheme") {
+                        resultMessage.innerHTML = "Недопустимый протокол. Допустимые протоколы: <i>https, http</i>"
+                    }
+
+                } else if (xhr.status === 409) {
+                    resultMessage.style.display = "block";
+                    resultMessage.classList.toggle('alert-success', false);
+                    resultMessage.classList.toggle('alert-danger', true);
+                    resultMessage.innerHTML = "Такая ссылка уже добавлена."
+
+                }
+            }
+        };
+
+        xhr.open('POST', `http://${document.domain}:${location.port}/resources/`);
+
+        xhr.setRequestHeader('Content-Type', 'application/json')
+
+        xhr.send(JSON.stringify(data));
+
+        return false;
+
+    });
+
+    fileForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        var xhr = new XMLHttpRequest();
+        const formData = new FormData();
+        formData.append("file", fileInput.files[0]);
+
+        console.log([...formData]);
+
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === XMLHttpRequest.DONE) {
+                if (xhr.status === 201) {
+                    fileForm.reset(); // reset form after AJAX success or do something else
+                    document.getElementById("send-file-message").style.display = "block";
+
+                    var resultContainer = document.getElementById("result-container");
+                    var resultContent = document.getElementById("result-content");
+
+                    var resultData = JSON.parse(xhr.responseText);
+                    resultContent.innerText = JSON.stringify(resultData, null, 2);
+                    resultContainer.style.display = "block";
+
+                } else if (xhr.status === 409) {
+                    var resultMessage = document.getElementById("send-file-message")
+                    resultMessage.style.display = "block";
+                    resultMessage.classList.add("alert-danger")
+
+                } else {
+                    var errorResponse;
+
+                    try {
+                        errorResponse = JSON.parse(xhr.responseText);
+                    } catch (error) {
+                        errorResponse = xhr.responseText;
+                    }
+                    console.error('Error details:', errorResponse);
+                }
+            }
+        };
+
+        xhr.open('POST', `http://${document.domain}:${location.port}/resources/`);
+
+        xhr.send(formData);
+        return false;
+    });
+</script>
+
 {% endblock %}
