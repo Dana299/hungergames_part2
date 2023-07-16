@@ -61,9 +61,14 @@ def get_web_resources_query(
         # base query
         query = db.session.query(
             WebResource.id,
+            WebResource.uuid,
             WebResource.full_url,
             WebResourceStatus.status_code,
-            WebResourceStatus.is_available
+            WebResourceStatus.is_available,
+            WebResource.domain_zone,
+            WebResource.domain,
+            WebResource.screenshot,
+            WebResource.protocol,
         ).join(
             WebResourceStatus,
             WebResource.id == WebResourceStatus.resource_id,

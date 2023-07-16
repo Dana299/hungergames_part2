@@ -7,7 +7,7 @@ from main.tasks import process_urls_from_zip_archive
 from main.utils.helpers import convert_to_serializable, make_int
 
 
-@app.route('/resources/', methods=['GET'])
+@app.route('/api/resources/', methods=['GET'])
 def get_resources():
     # extract query params
     domain_zone = request.args.get('domain_zone')
@@ -218,10 +218,10 @@ def get_resource_page(resource_uuid):
         return jsonify(url=news_item.resource.full_url, events=data)
 
 
-@bp.route("/index/", methods=["GET"])
+@bp.route("/resources/", methods=["GET"])
 def index():
-    app.logger.info(f"GET - {request.url} visited")
-    return "<h1>hi Dana</h1>"
+    app.logger.info(f"GET - main page on {request.url} visited")
+    return render_template("index.html")
 
 
 @bp.route("/logs/", methods=["GET"])
