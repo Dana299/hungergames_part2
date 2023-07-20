@@ -29,3 +29,9 @@ def test_logs():
     app.logger.debug("debug")
     app.logger.info("info")
     return "<h1>Test log messages for all levels called. Check web log viewer</h1>"
+
+
+@app.route("/resources/<uuid:resource_uuid>", methods=["GET"])
+def get_resource_page(resource_uuid):
+    app.logger.info(f"GET - resource page {request.url} visited")
+    return render_template("resource_page.html")

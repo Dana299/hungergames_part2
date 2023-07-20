@@ -3,8 +3,8 @@
 
 {% block content %}
     <div class="container mt-4">
-        <table class="table" id="resources-table">
-            <thead class="thead-dark"></thead>
+        <table class="table table-bordered align-middle table-hover p-3" id="resources-table">
+            <thead class="bg-dark"></thead>
         </table>
 
         <nav aria-label="...">
@@ -68,7 +68,7 @@
         // Create table header
         const tableHeader = document.createElement('thead');
         const headerRow = document.createElement('tr');
-        const headers = ['Полный адрес', 'Домен', 'Доменная зона', 'Последний код ответа', 'Скриншот'];
+        const headers = ['Полный адрес', 'Домен', 'Доменная зона', 'Последний код ответа'];
 
         headers.forEach(headerText => {
             const header = document.createElement('th');
@@ -90,7 +90,10 @@
 
             // Create cells for each field
             const fullUrlCell = document.createElement('td');
-            fullUrlCell.textContent = resource.full_url;
+            const link = document.createElement('a');
+            link.href = '/resources/' + resource.uuid;
+            link.textContent = resource.full_url;
+            fullUrlCell.appendChild(link);
             row.appendChild(fullUrlCell);
 
             const domainCell = document.createElement('td');
@@ -107,10 +110,6 @@
             statusCodeCell.textContent = resource.status_code;
             statusCodeCell.style = "text-align: center; vertical-align: middle";
             row.appendChild(statusCodeCell);
-
-            const screenshotCell = document.createElement('td');
-            screenshotCell.textContent = resource.screenshot;
-            row.appendChild(screenshotCell);
 
             if (resource.is_available === true) {
                 row.classList.add("alert-success")
@@ -189,7 +188,7 @@
         const perPage = parseInt(urlParams.get('per_page'))
 
         return { page, perPage };
-      }
+    }
 
     function navigateToNextPage(event) {
         event.preventDefault();
@@ -199,7 +198,7 @@
         const perPage = params.perPage;
 
         getWebResources(nextPage, perPage);
-      }
+    }
 
     function navigateToPreviousPage(event) {
         event.preventDefault();
