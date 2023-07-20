@@ -1,24 +1,48 @@
-from typing import List
+from base64 import b64encode
+from typing import List, Optional
 
-from pydantic import UUID4, AnyHttpUrl, BaseModel, validator
+from pydantic import UUID4, AnyHttpUrl, BaseModel, root_validator, validator
 from werkzeug.datastructures import FileStorage
 
 
-class RequestSchema(BaseModel):
+class ResourceCreateRequestSchema(BaseModel):
     url: AnyHttpUrl
 
 
-class ResponseSchema(BaseModel):
+class ResourceCreateResponseSchema(BaseModel):
     uuid: UUID4
     protocol: str
     domain: str
     domain_zone: str
-    url_path: str
-    query_params: dict | None
+    url_path: Optional[str]
+    full_url: str
+    query_params: Optional[dict]
 
 
-class ListResponseSchema(BaseModel):
-    urls: List[ResponseSchema]
+class ListResourceGetSchemaItem(ResourceCreateResponseSchema):
+    id: int
+    status_code: Optional[int]
+    is_available: Optional[bool]
+
+
+class ResourceGetSchema(ListResourceGetSchemaItem):
+    screenshot: Optional[str]
+
+    @root_validator(pre=True)
+    def convert_bytes_to_base64(cls, values):
+        screenshot = values.get("screenshot")
+        if screenshot is not None and isinstance(screenshot, bytes):
+            values["screenshot"] = b64encode(screenshot).decode("utf-8")
+        return values
+
+
+class ListResourceGetSchema(BaseModel):
+    items: List[ListResourceGetSchemaItem]
+
+
+class PaginatedResourceListSchema(ListResourceGetSchema):
+    meta: dict
+    links: dict
 
 
 class FileRequestSchema(BaseModel):

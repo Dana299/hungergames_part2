@@ -1,3 +1,5 @@
+from base64 import b64encode
+
 from flask import Response, jsonify, request, url_for
 from pydantic import ValidationError
 
@@ -31,13 +33,20 @@ def get_resources():
         is_available=availability_dict.get(availability),
     )
 
-    # Пагинация результатов
-    response = models.WebResource.get_paginated(
+    paginated_resource_list = models.WebResource.get_paginated(
         query,
         page,
         per_page,
         'main.get_resources',
     )
+
+    response = schemas.PaginatedResourceListSchema(
+        items=[
+            schemas.ResourceGetSchema(**item).dict() for item in paginated_resource_list["items"]
+        ],
+        meta=paginated_resource_list.get('_meta'),
+        links=paginated_resource_list.get('_links')
+    ).dict()
 
     return jsonify(response)
 
@@ -52,7 +61,7 @@ def create_url():
         body = request.get_json()
 
         try:
-            validated_url = schemas.RequestSchema(**body)
+            validated_url = schemas.ResourceCreateRequestSchema(**body)
 
             # check whether resource already exists in DB
             web_resource = services.create_web_resource(validated_url.url)
@@ -61,7 +70,8 @@ def create_url():
                 return jsonify({'error': 'Web resource already exists'}), 409
 
             else:
-                response_data = schemas.ResponseSchema(
+                response_data = schemas.ResourceCreateResponseSchema(
+                    full_url=validated_url.url,
                     uuid=web_resource.uuid,
                     protocol=web_resource.protocol,
                     domain=web_resource.domain,
@@ -202,7 +212,9 @@ def get_resource_page(resource_uuid):
     resource = services.get_resource_by_uuid(uuid_=resource_uuid)
 
     if not resource:
-        return "<h1>Not Found</h1>"
+        return jsonify({"Error": "Not found"}), 404
+
+    # TODO: change forming the response with Pydantic Schemas
 
     else:
         page = services.get_resource_page(resource_uuid=resource_uuid)
@@ -215,4 +227,17 @@ def get_resource_page(resource_uuid):
             }
             data.append(news_dict)
 
-        return jsonify(url=news_item.resource.full_url, events=data)
+        if news_item.resource.screenshot:
+            screenshot_base64 = b64encode(news_item.resource.screenshot).decode("utf-8")
+        else:
+            screenshot_base64 = None
+
+        return jsonify(
+            url=news_item.resource.full_url,
+            url_path=news_item.resource.url_path,
+            protocol=news_item.resource.protocol,
+            domain=news_item.resource.domain,
+            domain_zone=news_item.resource.domain_zone,
+            screenshot=screenshot_base64,
+            events=data,
+        )

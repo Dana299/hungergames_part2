@@ -132,8 +132,8 @@
         const nextLink = document.getElementById('next-link')
         const paginationContainer = document.getElementById("pagination-numbers")
 
-        const currentPage = data._meta.page;
-        const totalPages = data._meta.total_pages;
+        const currentPage = data.meta.page;
+        const totalPages = data.meta.total_pages;
 
         // get `per_page` param from url
         const urlParams = new URLSearchParams(window.location.search);
@@ -150,19 +150,19 @@
             paginationContainer.appendChild(pageLink);
         }
 
-        previousLink.href = data._links.prev;
-        nextLink.href = data._links.next;
+        previousLink.href = data.links.prev;
+        nextLink.href = data.links.next;
 
         // add "disabled" to "Previous" button if there is no previous link
-        if (!data._links.prev) {
+        if (!data.links.prev) {
             previousLink.parentElement.classList.add('disabled');
-        } else if (data._links.prev) {
+            } else if (data.links.prev) {
             previousLink.parentElement.classList.remove('disabled')
         }
 
-        if (!data._links.next) {
+        if (!data.links.next) {
             nextLink.parentElement.classList.add('disabled');
-        } else if (data._links.next) {
+            } else if (data.links.next) {
             nextLink.parentElement.classList.remove('disabled')
         }
 
