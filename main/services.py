@@ -5,8 +5,8 @@ from sqlalchemy.orm.query import Query
 from werkzeug.datastructures import FileStorage
 
 from main.app import db
-from main.db.models import (FileProcessingRequest, NewsFeedItem, WebResource,
-                            WebResourceStatus)
+from main.db.models import (FileProcessingRequest, NewsFeedItem, StatusOption,
+                            WebResource, WebResourceStatus)
 from main.utils.urlparser import parse_url
 
 
@@ -170,9 +170,9 @@ def create_file_processing_request() -> int:
     return processing_request.id
 
 
-def get_file_processing_request_by_id(request_id: int) -> FileProcessingRequest:
-    """Find FileProcessingRequest by given ID and return it."""
-    processing_request = FileProcessingRequest.query.filter_by(id=request_id).first()
+def get_file_processing_request_by_id(request_id: int) -> Optional[FileProcessingRequest]:
+    """Find FileProcessingRequest by given ID and return it if found else return None."""
+    processing_request = FileProcessingRequest.query.filter_by(id=request_id).one_or_none()
     return processing_request
 
 
@@ -217,23 +217,32 @@ def bulk_create_web_resources(validated_urls: List[str]):
 
 def update_processing_request(
     processing_request: FileProcessingRequest,
-    total_urls: Optional[int] = None,
-    processed_urls: Optional[int] = None,
-    is_finished: Optional[bool] = None,
-    errors: Optional[int] = None,
+    task_id: Optional[str] = None,
+    total_count: Optional[int] = None,
+    processed_count: Optional[int] = None,
+    errors_count: Optional[int] = None,
+    error_urls: Optional[List[str]] = None,
+    status: Optional[StatusOption] = None,
 ):
     """Update the given fields in the given processing request in DB."""
-    if total_urls is not None:
-        processing_request.total_urls = total_urls
 
-    if processed_urls is not None:
-        processing_request.processed_urls = processed_urls
+    if task_id is not None:
+        processing_request.task_id = task_id
 
-    if is_finished is not None:
-        processing_request.is_finished = is_finished
+    if total_count is not None:
+        processing_request.total_count = total_count
 
-    if errors is not None:
-        processing_request.errors = errors
+    if processed_count is not None:
+        processing_request.processed_count = processed_count
+
+    if errors_count is not None:
+        processing_request.errors_count = errors_count
+
+    if error_urls is not None:
+        processing_request.error_urls = error_urls
+
+    if status is not None:
+        processing_request.status = status
 
     db.session.add(processing_request)
     db.session.commit()

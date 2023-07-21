@@ -1,11 +1,15 @@
+import json
 from base64 import b64encode
 
 from flask import Response, jsonify, request, url_for
 from pydantic import ValidationError
+from redis import Redis
 
 from main import app, bp, log_buffer, services, socketio
 from main.db import models, schemas
-from main.tasks import process_urls_from_zip_archive
+from main.db.models import StatusOption
+from main.tasks import (FileProcessingTaskResponse,
+                        process_urls_from_zip_archive)
 from main.utils.helpers import convert_to_serializable, make_int
 
 
@@ -162,18 +166,43 @@ def delete_url_structure(web_resource_id: int):
 
 @bp.route("/processing-requests/<int:request_id>/", methods=["GET"])
 def get_status_of_processing_request(request_id: int):
-    processing_request = services.get_file_processing_request_by_id(request_id=request_id)
 
-    app.logger.info(f"200 - GET request to {request.url}")
+    processing_request = services.get_file_processing_request_by_id(request_id)
 
-    response = {
-        "is_finished": processing_request.is_finished,
-        "total_urls": processing_request.total_urls,
-        "processed_urls": processing_request.processed_urls,
-        "errors": processing_request.errors,
-    }
+    if not processing_request:
+        app.logger.info(f"404 - GET request to {request.url} with non-existing ID")
+        return jsonify({"Error": "Request with the given ID was not found."}), 404
 
-    return jsonify(response)
+    if processing_request.status == StatusOption.PENDING:
+        # TODO change response format
+        return jsonify({"Message": "Task is not being executed yet."})
+
+    if processing_request.status == StatusOption.INPROCESS:
+        task_id = processing_request.task_id
+        redis_client: Redis = app.extensions["redis"]
+        redis_data = redis_client.get(name=task_id)
+
+        if redis_data:
+            response = json.loads(redis_data)
+            return jsonify(response)
+        else:
+            return jsonify({"Message": "Task not found in Redis"})
+
+    if processing_request.status == StatusOption.SUCCEEDED:
+        response: FileProcessingTaskResponse = {
+            "status": StatusOption.SUCCEEDED.value,
+            "processed": processing_request.processed_count,
+            "total": processing_request.total_count,
+            "errors": {
+                "count": processing_request.errors_count,
+                "error_urls": processing_request.error_urls,
+            }
+        }
+
+        return jsonify(response)
+
+    else:
+        return jsonify({"Message": "File processing failed. Try sending file again."})
 
 
 @bp.route("/resources/<uuid:resource_uuid>/", methods=["POST"])

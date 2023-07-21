@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from flask import Flask
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
+from redis import Redis
 from werkzeug.routing import IntegerConverter, UUIDConverter
 
 from main import log_buffer, socketio
@@ -57,6 +58,9 @@ def create_app(conf_file: str = "config.yaml"):
             broker_connection_retry_on_startup=True,
         ),
     )
+
+    redis_client = Redis(host=os.getenv("BROKER_URL_HOST"), port=6379)
+    app.extensions["redis"] = redis_client
 
     celery_init_app(app)
     return app
