@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qsl, urlparse
 
 
 @dataclass
@@ -8,7 +8,7 @@ class URLStructure:
     domain: str
     domain_zone: str
     path: str
-    query_params: dict
+    query_params: list
 
 
 def parse_url(url: str) -> URLStructure:
@@ -19,7 +19,7 @@ def parse_url(url: str) -> URLStructure:
     domain_zone = domain.split(".")[-1]
     path = parsed_url.path
     protocol = parsed_url.scheme
-    query_params = parse_qs(parsed_url.query)
+    query_params = parse_qsl(parsed_url.query)
 
     return URLStructure(
         protocol=protocol,
