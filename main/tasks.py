@@ -126,7 +126,7 @@ def process_urls_from_zip_archive(zip_file: bytes, request_id: int):
 
         try:
             # try to validate url and add it to list with valid urls for further bulk create in db
-            validated_url = schemas.RequestSchema.parse_obj({"url": line})
+            validated_url = schemas.ResourceCreateRequestSchema.parse_obj({"url": line})
             validated_urls.append(validated_url.url)
 
         except ValidationError:

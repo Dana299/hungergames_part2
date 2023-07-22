@@ -33,10 +33,12 @@ def create_web_resource(validated_url: str) -> WebResource | None:
         db.session.add(web_resource)
         db.session.commit()
 
-        create_newsfeed_item(
-            resource=web_resource,
-            event=NewsFeedItem.EventType.RESOURCE_ADDED,
-        )
+        # TODO: fix migration that add new EventType
+
+        # create_newsfeed_item(
+        #     resource=web_resource,
+        #     event=NewsFeedItem.EventType.RESOURCE_ADDED,
+        # )
 
         return web_resource
 
