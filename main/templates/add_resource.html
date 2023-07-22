@@ -29,17 +29,22 @@
 
         <div id="result-container" style="display:none">
             <h2>Результат обработки:</h2>
-            <table class="table">
+
+            <table class="table" style="display:none">
                 <thead>
                     <tr>
                         <th>Составная часть</th>
                         <th>Значение</th>
                     </tr>
                 </thead>
-                <tbody id="result-content">
+                <tbody id="url-data-content">
                     <!-- String with the result. -->
                 </tbody>
             </table>
+
+            <div id="file-processing-request-data" style="display:none">
+
+            </div>
         </div>
 
     </div>
@@ -93,9 +98,11 @@
 
                     var resultData = JSON.parse(xhr.responseText)
                     var resultContainer = document.getElementById('result-container')
-                    var resultContent = document.getElementById('result-content');
+                    var resultContent = document.getElementById('url-data-content');
+                    var tableElement = resultContainer.getElementsByClassName('table')[0]
 
                     resultContainer.style.display = "block";
+                    tableElement.style.display = "block";
                     resultContent.innerHTML = '';
 
                     var keyMappings = {
@@ -155,7 +162,7 @@
             }
         };
 
-        xhr.open('POST', `http://${document.domain}:${location.port}/resources/`);
+        xhr.open('POST', `http://${document.domain}:${location.port}/api/resources/`);
 
         xhr.setRequestHeader('Content-Type', 'application/json')
 
@@ -181,11 +188,18 @@
                     document.getElementById("send-file-message").style.display = "block";
 
                     var resultContainer = document.getElementById("result-container");
-                    var resultContent = document.getElementById("result-content");
+                    var resultContent = document.getElementById("file-processing-request-data");
 
                     var resultData = JSON.parse(xhr.responseText);
-                    resultContent.innerText = JSON.stringify(resultData, null, 2);
+                    var processingResultLink = document.createElement('a')
+
+                    //requestID = resultData._links.task.slice(-1)
+                    processingResultLink.href = resultData._links.task
+                    processingResultLink.textContent = "Посмотреть результат обработки"
+
                     resultContainer.style.display = "block";
+                    resultContent.style.display = "block";
+                    resultContent.appendChild(processingResultLink);
 
                 } else if (xhr.status === 409) {
                     var resultMessage = document.getElementById("send-file-message")
@@ -205,7 +219,7 @@
             }
         };
 
-        xhr.open('POST', `http://${document.domain}:${location.port}/resources/`);
+        xhr.open('POST', `http://${document.domain}:${location.port}/api/resources/`);
 
         xhr.send(formData);
         return false;
