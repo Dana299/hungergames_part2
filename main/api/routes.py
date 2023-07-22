@@ -119,21 +119,7 @@ def create_url():
                 f"201 - User posted ZIP archive with URLs on {url_for('.create_url')}"
             )
 
-            return (
-                jsonify(
-                    {
-                        "_links":
-                            {
-                                "task": url_for(
-                                    ".get_status_of_processing_request",
-                                    request_id=processing_request_id,
-                                    _external=True,
-                                )
-                            }
-                    }
-                ),
-                201,
-            )
+            return jsonify({"request_id": processing_request_id}), 201
 
         except ValidationError as e:
             errors = convert_to_serializable(e.errors())
