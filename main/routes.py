@@ -35,3 +35,8 @@ def test_logs():
 def get_resource_page(resource_uuid):
     app.logger.info(f"GET - resource page {request.url} visited")
     return render_template("resource_page.html")
+
+
+@app.route("/processing-requests/<int:request_id>", methods=["GET"])
+def get_processing_request_page(request_id):
+    return render_template("request_page.html")
