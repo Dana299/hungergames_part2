@@ -1,6 +1,8 @@
-from flask import render_template, request
+from flask import redirect, render_template, request, url_for
 
-from main import app
+from main import app, forms
+from main.service import db, exceptions
+from main.tasks import process_urls_from_zip_archive
 
 
 @app.route("/resources/", methods=["GET"])
@@ -17,8 +19,34 @@ def get_logs():
 
 @app.route("/add-resource/", methods=["GET", "POST"])
 def add_resource():
-    app.logger.info("User visit add_resource page")
-    return render_template('add_resource.html')
+    form_text = forms.URLTextForm()
+    form_file = forms.URLFileForm()
+
+    if request.method == 'POST':
+        # process first form with text
+        if form_text.submit_text.data and form_text.validate():
+            url = form_text.url.data
+            try:
+                web_resource = db.create_web_resource(validated_url=url)
+                app.logger.info(f"201 - User posted new URL: {url}")
+                return redirect(url_for('get_resource_page', resource_uuid=web_resource.uuid))
+            except exceptions.AlreadyExistsError:
+                form_text.url.errors.append("Такая ссылка уже существует")
+
+        # process second form with file
+        if form_file.submit_file.data and form_file.validate():
+            file = form_file.file.data
+            # create ZipFileProcessingRequest model instance
+            processing_request_id = db.create_file_processing_request()
+            # create celery task and pass id of created request to it as argument
+            process_urls_from_zip_archive.delay(
+                zip_file=file.read(),
+                request_id=processing_request_id,
+            )
+            app.logger.info("File processing request created.")
+            return redirect(url_for('get_processing_request_page', request_id=processing_request_id))
+
+    return render_template('add_resource.html', form_text=form_text, form_file=form_file)
 
 
 @app.route("/test_logs/", methods=["GET"])

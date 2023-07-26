@@ -42,6 +42,9 @@ def create_app(conf_file: str = "config.yaml"):
         os.getenv('POSTGRES_DB', 'flask')
     )
 
+    SECRET_KEY = os.urandom(12).hex()
+    app.config['SECRET_KEY'] = SECRET_KEY
+
     db.init_app(app)
     migrate = Migrate(app=app, db=db)
 

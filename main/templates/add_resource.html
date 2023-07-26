@@ -1,59 +1,72 @@
 {% extends 'base.html' %}
 
-<title>{% block title %} Add link page {% endblock %}</title>
+{% block title %}Add link page{% endblock %}
 
 {% block content %}
     <div class="container mt-4">
         <h1>Add New Web Resources</h1>
         <hr>
 
-        <form id="text-form">
-            <div class="form-group">
-                <label for="resourceUrl">Добавьте ссылку для обработки:</label>
-                <input type="text" class="form-control" id="resourceUrl" placeholder="Enter URL" name="url">
+        <div class="mb-3">
+            <h5>
+                Введите ссылку:
+            </h5>
+        </div>
+
+        <form id="text-form" method="post" action="{{ url_for('add_resource') }}">
+            <div class="mb-3">
+                <div class="form-group">
+                    {{ form_text.csrf_token }}
+                    {{ form_text.url(class="form-control", placeholder="Enter URL", id="text-input") }}
+                    {{ form_text.hidden_tag() }}
+                </div>
             </div>
-            <div id="send-text-message" class="alert" style="display:none;"></div>
-            <button type="submit" class="btn btn-primary" disabled id="sendUrlButton">Отправить</button>
+
+            <div class="mb-3">
+                {% if form_text.url.errors %}
+                {% for error in form_text.url.errors %}
+                    <div class="alert alert-danger" role="alert">{{ error }}</div>
+                {% endfor %}
+                {% endif %}
+            </div>
+
+            {{ form_text.submit_text(class="btn btn-primary", id="sendUrlButton", disabled="true") }}
+
         </form>
 
-        <form id="file-form">
-            <div class="form-group">
-                <label for="formFile" class="form-label">Или прикрепите ZIP архив с CSV файлом, в котором каждая строка - ссылка:</label>
-                <input type="file" class="form-control" id="formFile">
+        <div class="mb-3">
+            <h5>
+                Или прикрепите ZIP-архив с CSV файлом, где каждая строка - ссылка:
+            </h5>
+        </div>
+
+        <form id="file-form" method="post" action="{{ url_for('add_resource') }}" enctype="multipart/form-data">
+            <div class="mb-3">
+                <div class="form-group">
+                    {{ form_file.csrf_token }}
+                    {{ form_file.file(class="form-control", id="file-input") }}
+                    {{ form_file.hidden_tag() }}
+                </div>
             </div>
-            <div id="send-file-message" class="alert" style="display:none;">Файл был успешно отправлен.</div>
-            <button type="submit" class="btn btn-primary" disabled id="sendFileButton">Отправить</button>
+
+            <div class="mb-3">
+                {% if form_file.file.errors %}
+                {% for error in form_file.file.errors %}
+                    <div class="alert alert-danger" role="alert">{{ error }}</div>
+                {% endfor %}
+                {% endif %}
+            </div>
+
+            <div class="alert" style="display:none;">Файл был успешно отправлен.</div>
+            {{ form_file.submit_file(class="btn btn-primary", id="sendFileButton", disabled="true") }}
         </form>
 
         <hr>
 
-        <div id="result-container" style="display:none">
-            <h2>Результат обработки:</h2>
-
-            <table class="table" style="display:none">
-                <thead>
-                    <tr>
-                        <th>Составная часть</th>
-                        <th>Значение</th>
-                    </tr>
-                </thead>
-                <tbody id="url-data-content">
-                    <!-- String with the result. -->
-                </tbody>
-            </table>
-
-            <div id="file-processing-request-data" style="display:none">
-
-            </div>
-        </div>
-
-    </div>
-
-
 <script>
-    const textInput = document.getElementById('resourceUrl')
+    const textInput = document.getElementById('text-input')
     const sendUrlButton = document.getElementById('sendUrlButton');
-    const fileInput = document.getElementById('formFile');
+    const fileInput = document.getElementById('file-input');
     const sendFileButton = document.getElementById('sendFileButton');
 
     const textForm = document.getElementById('text-form');
@@ -76,154 +89,6 @@
         }
     });
 
-    textForm.addEventListener('submit', function (e) {
-        e.preventDefault();
-
-        var xhr = new XMLHttpRequest();
-
-        var data = {
-            url: textInput.value
-        };
-
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState === XMLHttpRequest.DONE) {
-                const resultMessage = document.getElementById('send-text-message');
-
-                if (xhr.status === 201) {
-                    textForm.reset();
-                    resultMessage.style.display = "block";
-                    resultMessage.classList.toggle('alert-success', true);
-                    resultMessage.classList.toggle('alert-danger', false);
-                    resultMessage.innerHTML = "Ссылка успешно добавлена.";
-
-                    var resultData = JSON.parse(xhr.responseText)
-                    var resultContainer = document.getElementById('result-container')
-                    var resultContent = document.getElementById('url-data-content');
-                    var tableElement = resultContainer.getElementsByClassName('table')[0]
-
-                    resultContainer.style.display = "block";
-                    tableElement.style.display = "block";
-                    resultContent.innerHTML = '';
-
-                    var keyMappings = {
-                        "uuid": "UUID",
-                        "protocol": "Протокол",
-                        "domain": "Домен",
-                        "domain_zone": "Доменная зона",
-                        "url_path": "Путь",
-                        "query_params": "Query-параметры"
-                    };
-
-                    // add strings to table
-                    for (var key in resultData) {
-                        var row = document.createElement('tr');
-                        var keyCell = document.createElement('td');
-                        var valueCell = document.createElement('td');
-
-                        var alternativeKey = keyMappings[key] || key;
-                        keyCell.textContent = alternativeKey;
-
-                        if (key === 'query_params') {
-                            valueCell.style.fontStyle = 'italic';
-                            valueCell.textContent = Object.entries(resultData[key])
-                            .map(([paramKey, paramValue]) => `${paramKey} = ${paramValue}`)
-                            .join('\n');
-
-                        } else {
-                            valueCell.textContent = resultData[key];
-                        }
-
-                        row.appendChild(keyCell);
-                        row.appendChild(valueCell);
-
-                        resultContent.appendChild(row);
-                    }
-
-                } else if (xhr.status === 400) {
-
-                    var parsedResponse = JSON.parse(xhr.responseText);
-                    var errorMessage = parsedResponse.message[0].type;
-
-                    resultMessage.style.display = "block";
-                    resultMessage.classList.toggle('alert-success', false);
-                    resultMessage.classList.toggle('alert-danger', true);
-
-                    if (errorMessage === "value_error.url.scheme") {
-                        resultMessage.innerHTML = "Недопустимый протокол. Допустимые протоколы: <i>https, http</i>"
-                    }
-
-                } else if (xhr.status === 409) {
-                    resultMessage.style.display = "block";
-                    resultMessage.classList.toggle('alert-success', false);
-                    resultMessage.classList.toggle('alert-danger', true);
-                    resultMessage.innerHTML = "Такая ссылка уже добавлена."
-
-                }
-            }
-        };
-
-        xhr.open('POST', `http://${document.domain}:${location.port}/api/resources/`);
-
-        xhr.setRequestHeader('Content-Type', 'application/json')
-
-        xhr.send(JSON.stringify(data));
-
-        return false;
-
-    });
-
-    fileForm.addEventListener('submit', function (e) {
-        e.preventDefault();
-
-        var xhr = new XMLHttpRequest();
-        const formData = new FormData();
-        formData.append("file", fileInput.files[0]);
-
-        console.log([...formData]);
-
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState === XMLHttpRequest.DONE) {
-                if (xhr.status === 201) {
-                    fileForm.reset(); // reset form after AJAX success or do something else
-                    document.getElementById("send-file-message").style.display = "block";
-
-                    var resultContainer = document.getElementById("result-container");
-                    var resultContent = document.getElementById("file-processing-request-data");
-
-                    var resultData = JSON.parse(xhr.responseText);
-                    var processingResultLink = document.createElement('a')
-
-                    //requestID = resultData._links.task.slice(-1)
-                    processingResultLink.href = resultData._links.task
-                    processingResultLink.textContent = "Посмотреть результат обработки"
-
-                    resultContainer.style.display = "block";
-                    resultContent.style.display = "block";
-                    resultContent.appendChild(processingResultLink);
-
-                } else if (xhr.status === 409) {
-                    var resultMessage = document.getElementById("send-file-message")
-                    resultMessage.style.display = "block";
-                    resultMessage.classList.add("alert-danger")
-
-                } else {
-                    var errorResponse;
-
-                    try {
-                        errorResponse = JSON.parse(xhr.responseText);
-                    } catch (error) {
-                        errorResponse = xhr.responseText;
-                    }
-                    console.error('Error details:', errorResponse);
-                }
-            }
-        };
-
-        xhr.open('POST', `http://${document.domain}:${location.port}/api/resources/`);
-
-        xhr.send(formData);
-        return false;
-    });
 </script>
 
 {% endblock %}
