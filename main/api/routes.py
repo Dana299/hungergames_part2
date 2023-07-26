@@ -176,27 +176,31 @@ def get_resource_page(resource_uuid):
     # TODO: change forming the response with Pydantic Schemas
 
     else:
-        page = services.get_resource_page(resource_uuid=resource_uuid)
+        # TODO: refactor
+        page = db.get_resource_page(resource_uuid=resource_uuid)
+        resource = page[0][0]   # WebResource is on the 1 position in tuple
         data = []
-        for item in page:
-            news_item = item[1]  # NewsFeedItem находится на второй позиции в кортеже
-            news_dict = {
-                "event_type": news_item.event_type.value,
-                "timestamp": news_item.timestamp.isoformat()
-            }
-            data.append(news_dict)
 
-        if news_item.resource.screenshot:
+        for item in page:
+            news_item = item[1]  # NewsFeedItem is on the 2 position in tuple
+            if news_item:
+                news_dict = {
+                    "event_type": news_item.event_type.value,
+                    "timestamp": news_item.timestamp.isoformat()
+                }
+                data.append(news_dict)
+
+        if resource.screenshot:
             screenshot_base64 = b64encode(news_item.resource.screenshot).decode("utf-8")
         else:
             screenshot_base64 = None
 
         return jsonify(
-            url=news_item.resource.full_url,
-            url_path=news_item.resource.url_path,
-            protocol=news_item.resource.protocol,
-            domain=news_item.resource.domain,
-            domain_zone=news_item.resource.domain_zone,
+            url=resource.full_url,
+            url_path=resource.url_path,
+            protocol=resource.protocol,
+            domain=resource.domain,
+            domain_zone=resource.domain_zone,
             screenshot=screenshot_base64,
             events=data,
         )
