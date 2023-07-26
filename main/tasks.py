@@ -6,9 +6,10 @@ from celery import current_task, shared_task
 from pydantic import ValidationError
 from redis import Redis
 
-from main import app, services
+from main import app
 from main.db import schemas
 from main.db.models import NewsFeedItem, StatusOption
+from main.service import db
 from main.utils import ziploader
 
 
@@ -32,7 +33,7 @@ def get_response_from_resources():
 
     # for future: distribute all urls between multiple celery workers.
 
-    resources_from_db = services.get_web_resources_query().all()
+    resources_from_db = db.get_web_resources_query().all()
 
     for resource in resources_from_db:
 
@@ -48,11 +49,11 @@ def get_response_from_resources():
             status_code = 404
 
         finally:
-            services.update_counter_for_resource_availability(
+            db.update_counter_for_resource_availability(
                 resource=resource,
                 is_available=is_available
             )
-            services.save_status_code_for_web_resource_response(
+            db.save_status_code_for_web_resource_response(
                 resource=resource,
                 status_code=response.status_code,
                 is_available=is_available,
@@ -60,7 +61,7 @@ def get_response_from_resources():
 
             # add newsfeed item if status has changed from the last time
             if last_availability != is_available:
-                services.create_newsfeed_item(
+                db.create_newsfeed_item(
                     resource=resource,
                     event=NewsFeedItem.EventType.STATUS_CHANGED,
                 )
@@ -68,12 +69,12 @@ def get_response_from_resources():
 
 @shared_task
 def delete_unavailable_resources(unavailable_count: int):
-    unavailable_resources = services.get_web_resources_query(
+    unavailable_resources = db.get_web_resources_query(
         unavailable_count=unavailable_count,
     )
 
     for resource in unavailable_resources:
-        services.delete_web_resource(resource=resource)
+        db.delete_web_resource(resource=resource)
 
 
 @shared_task
@@ -89,13 +90,7 @@ def process_urls_from_zip_archive(zip_file: bytes, request_id: int):
 
     lines_from_csv = ziploader.get_lines_from_csv(zip_file=zip_file)
 
-    processing_request = services.get_file_processing_request_by_id(request_id=request_id)
-
-    services.update_processing_request(
-        processing_request=processing_request,
-        status=StatusOption.INPROCESS,
-        task_id=task_id,
-    )
+    processing_request = db.get_file_processing_request_by_id(request_id=request_id)
 
     # initialize counters
     total_lines_number = len(lines_from_csv)
@@ -119,8 +114,13 @@ def process_urls_from_zip_archive(zip_file: bytes, request_id: int):
     }
 
     task_response_json = json.dumps(task_response)
-
     redis_client.set(name=task_id, value=task_response_json)
+
+    db.update_processing_request(
+        processing_request=processing_request,
+        status=StatusOption.INPROCESS,
+        task_id=task_id,
+    )
 
     for line in lines_from_csv:
 
@@ -148,9 +148,9 @@ def process_urls_from_zip_archive(zip_file: bytes, request_id: int):
         # set task response JSON in Redis
         redis_client.set(name=task_id, value=task_response_json)
 
-    services.bulk_create_web_resources(validated_urls=validated_urls)
+    db.bulk_create_web_resources(validated_urls=validated_urls)
 
-    services.update_processing_request(
+    db.update_processing_request(
         processing_request=processing_request,
         total_count=total_lines_number,
         processed_count=processed_count,

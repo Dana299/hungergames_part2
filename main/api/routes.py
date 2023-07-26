@@ -1,15 +1,11 @@
-import json
 from base64 import b64encode
 
 from flask import Response, jsonify, request, url_for
 from pydantic import ValidationError
-from redis import Redis
 
-from main import app, bp, log_buffer, services, socketio
+from main import app, bp, log_buffer, socketio
 from main.db import models, schemas
-from main.db.models import StatusOption
-from main.tasks import (FileProcessingTaskResponse,
-                        process_urls_from_zip_archive)
+from main.service import db, exceptions, handlers
 from main.utils.helpers import convert_to_serializable, make_int
 
 
@@ -29,7 +25,7 @@ def get_resources():
         None: None,
     }
 
-    query = services.get_web_resources_query(
+    query = db.get_web_resources_query(
         left_join=True,
         domain_zone=domain_zone,
         resource_id=resource_id,
@@ -61,36 +57,22 @@ def create_url():
     Router for proceeding single URL from body or multiple URLs from zip with csv file.
     Create celery task if zip file was uploaded.
     """
-    if request.is_json and not request.files:
+    if request.is_json:
         body = request.get_json()
 
         try:
-            validated_url = schemas.ResourceCreateRequestSchema(**body)
+            url = handlers.handle_post_url_json(body)
 
-            # check whether resource already exists in DB
-            web_resource = services.create_web_resource(validated_url.url)
+            app.logger.info(f"201 - User posted new URL on {url_for('.create_url')}")
 
-            if not web_resource:
-                return jsonify({'error': 'Web resource already exists'}), 409
+            return Response(
+                url.json(),
+                status=201,
+                mimetype='application/json',
+            )
 
-            else:
-                response_data = schemas.ResourceCreateResponseSchema(
-                    full_url=validated_url.url,
-                    uuid=web_resource.uuid,
-                    protocol=web_resource.protocol,
-                    domain=web_resource.domain,
-                    domain_zone=web_resource.domain_zone,
-                    url_path=web_resource.url_path,
-                    query_params=web_resource.query_params,
-                )
-
-                app.logger.info(f"201 - User posted new URL on {url_for('.create_url')}")
-
-                return Response(
-                    response_data.json(),
-                    status=201,
-                    mimetype='application/json',
-                )
+        except exceptions.AlreadyExistsError:
+            return jsonify({'error': 'Web resource already exists'}), 409
 
         except ValidationError as e:
             app.logger.info(f"400 - User made bad request to {request.url}")
@@ -101,19 +83,10 @@ def create_url():
             }
             return jsonify(response), 400
 
-    elif request.files and not request.is_json:
+    elif request.files:
 
         try:
-            validated_data = schemas.ZipFileRequestSchema(**request.files)
-
-            # create ZipFileProcessingRequest model instance
-            processing_request_id = services.create_file_processing_request()
-
-            # create celery task and pass id of created request to it as argument
-            process_urls_from_zip_archive.delay(
-                zip_file=validated_data.file.read(),
-                request_id=processing_request_id,
-            )
+            processing_request_id = handlers.handle_post_url_file(request.files)
 
             app.logger.info(
                 f"201 - User posted ZIP archive with URLs on {url_for('.create_url')}"
@@ -140,12 +113,12 @@ def create_url():
 
 @bp.route("/resources/<int:web_resource_id>/", methods=['DELETE'])
 def delete_url_structure(web_resource_id: int):
-    found_and_deleted = services.delete_web_resource_by_id(web_resource_id)
-
-    if found_and_deleted:
+    try:
+        db.delete_web_resource_by_id(web_resource_id)
         app.logger.info(f"204 - Resource with ID={web_resource_id} was deleted.")
         return Response(status=204)
-    else:
+
+    except exceptions.NotFoundError:
         app.logger.info(f"404 - Attempt to delete resource with ID={web_resource_id} that does not exist.")
         return Response(status=404)
 
@@ -153,78 +126,49 @@ def delete_url_structure(web_resource_id: int):
 @bp.route("/processing-requests/<int:request_id>/", methods=["GET"])
 def get_status_of_processing_request(request_id: int):
 
-    processing_request = services.get_file_processing_request_by_id(request_id)
+    try:
+        status_info = handlers.handle_get_request_status(
+            request_id=request_id,
+            storage_client=app.extensions["redis"],
+        )
+        return jsonify(status_info)
 
-    if not processing_request:
+    except exceptions.NotFoundError:
         app.logger.info(f"404 - GET request to {request.url} with non-existing ID")
         return jsonify({"Error": "Request with the given ID was not found."}), 404
-
-    if processing_request.status == StatusOption.PENDING:
-        # TODO change response format
-        return jsonify({"Message": "Task is not being executed yet."})
-
-    if processing_request.status == StatusOption.INPROCESS:
-        task_id = processing_request.task_id
-        redis_client: Redis = app.extensions["redis"]
-        redis_data = redis_client.get(name=task_id)
-
-        if redis_data:
-            response = json.loads(redis_data)
-            return jsonify(response)
-        else:
-            return jsonify({"Message": "Task not found in Redis"})
-
-    if processing_request.status == StatusOption.SUCCEEDED:
-        response: FileProcessingTaskResponse = {
-            "status": StatusOption.SUCCEEDED.value,
-            "processed": processing_request.processed_count,
-            "total": processing_request.total_count,
-            "errors": {
-                "count": processing_request.errors_count,
-                "error_urls": processing_request.error_urls,
-            }
-        }
-
-        return jsonify(response)
-
-    else:
-        return jsonify({"Message": "File processing failed. Try sending file again."})
 
 
 @bp.route("/resources/<uuid:resource_uuid>/", methods=["POST"])
 def post_image_for_resource(resource_uuid: str):
     """Router for posting images for resource with the given UUID."""
-    resource = services.get_resource_by_uuid(resource_uuid)
+    resource = db.get_resource_by_uuid(resource_uuid)
 
     if not resource:
         app.logger.info(f"404 - POST request to {request.url} with ID that does not exist.")
         return Response(status=404)
 
     else:
-        try:
-            validated_data = schemas.FileRequestSchema(**request.files)
-            services.add_image_to_resource(resource, validated_data.file)
-            return Response(status=201)
-        except ValidationError as e:
-            # app.logger.info(f""")
-            errors = convert_to_serializable(e.errors())
-            response = {
-                'error': 'Validation error',
-                'message': errors,
-            }
-            return jsonify(response), 400
+        if request.files:
+            try:
+                handlers.handle_post_image(request.files, resource)
+                return Response(status=201)
 
+            except ValidationError as e:
+                # app.logger.info(f""")
+                errors = convert_to_serializable(e.errors())
+                response = {
+                    'error': 'Validation error',
+                    'message': errors,
+                }
+                return jsonify(response), 400
 
-@socketio.on("connect", namespace="/logs")
-def connect():
-    # app.logger.info("Websocket connection to /logs page")
-    logs = log_buffer
-    socketio.emit(event="init_logs", data={"logs": logs}, namespace="/logs")
+        else:
+            return jsonify({"Error": "Invalid request format"}), 400
 
 
 @bp.route("/resources/<uuid:resource_uuid>/", methods=["GET"])
 def get_resource_page(resource_uuid):
-    resource = services.get_resource_by_uuid(uuid_=resource_uuid)
+    resource = db.get_resource_by_uuid(uuid_=resource_uuid)
 
     if not resource:
         return jsonify({"Error": "Not found"}), 404
@@ -256,3 +200,10 @@ def get_resource_page(resource_uuid):
             screenshot=screenshot_base64,
             events=data,
         )
+
+
+@socketio.on("connect", namespace="/logs")
+def connect():
+    # app.logger.info("Websocket connection to /logs page")
+    logs = log_buffer
+    socketio.emit(event="init_logs", data={"logs": logs}, namespace="/logs")

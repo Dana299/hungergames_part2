@@ -7,11 +7,12 @@ from werkzeug.datastructures import FileStorage
 from main.app import db
 from main.db.models import (FileProcessingRequest, NewsFeedItem, StatusOption,
                             WebResource, WebResourceStatus)
+from main.service import exceptions
 from main.utils.urlparser import parse_url
 
 
-def create_web_resource(validated_url: str) -> WebResource | None:
-    """Save WebResource instance in database if it does not already exist."""
+def create_web_resource(validated_url: str) -> WebResource:
+    """Save WebResource instance in database. If it already exists raise AlreadyExistsError."""
     response = parse_url(url=validated_url)
 
     web_resource = WebResource(
@@ -27,7 +28,7 @@ def create_web_resource(validated_url: str) -> WebResource | None:
     existing_resource = WebResource.query.filter_by(full_url=validated_url).first()
 
     if existing_resource:
-        return None
+        raise exceptions.AlreadyExistsError
 
     else:
         db.session.add(web_resource)
@@ -97,17 +98,15 @@ def get_web_resources_query(
     return query
 
 
-def delete_web_resource_by_id(resource_id: int) -> bool:
-    """Get WebResource object from DB and deletes it if it was found. Return corresponding boolean flag."""
-    is_deleted = False
+def delete_web_resource_by_id(resource_id: int):
+    """Get WebResource object from DB and deletes it if it was found. Raise exception otherwise."""
     resource = WebResource.query.filter_by(id=resource_id).first()
 
-    if resource:
-        db.session.delete(resource)
-        db.session.commit()
-        is_deleted = True
+    if not resource:
+        raise exceptions.NotFoundError
 
-    return is_deleted
+    db.session.delete(resource)
+    db.session.commit()
 
 
 def delete_web_resource(resource: WebResource):
