@@ -1,4 +1,5 @@
 import json
+from typing import Optional
 
 from pydantic import ValidationError
 
@@ -90,3 +91,44 @@ def handle_get_request_status(request_id, storage_client) -> FileProcessingTaskR
         }
 
         return status_info
+
+
+def handle_get_resources_with_filters(
+    domain_zone: Optional[str],
+    availability: Optional[str],
+    resource_id: Optional[int],
+    uuid: Optional[str],
+    page: Optional[int],
+    per_page: Optional[int],
+) -> schemas.PaginatedResourceListSchema:
+
+    availability_dict = {
+        "true": True,
+        "false": False,
+        None: None,
+    }
+
+    query = db.get_web_resources_query(
+        left_join=True,
+        domain_zone=domain_zone,
+        resource_id=resource_id,
+        resource_uuid=uuid,
+        is_available=availability_dict.get(availability),
+    )
+
+    paginated_resource_list = db.paginate_query(
+        query,
+        page,
+        per_page,
+        'main.get_resources',
+    )
+
+    paginated_resources_with_meta_data = schemas.PaginatedResourceListSchema(
+        items=[
+            schemas.ResourceGetSchema(**item).dict() for item in paginated_resource_list["items"]
+        ],
+        meta=paginated_resource_list.get('_meta'),
+        links=paginated_resource_list.get('_links')
+    )
+
+    return paginated_resources_with_meta_data

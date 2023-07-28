@@ -2,7 +2,6 @@ import uuid
 from enum import Enum
 from typing import List, TypedDict
 
-from flask import url_for
 from sqlalchemy.dialects.postgresql import JSON, UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -31,37 +30,7 @@ class EventType(Enum):
     PHOTO_ADDED = "photo_added"
 
 
-class PaginationMixin():
-    @staticmethod
-    def get_paginated(query, page, per_page, endpoint, **kwargs) -> PaginatedItemDict:
-
-        items_ = query.paginate(
-            page=page,
-            per_page=per_page,
-            error_out=False
-        )
-
-        data: PaginatedItemDict = {
-            'items': [item._asdict() for item in items_.items],
-            '_meta': {
-                'page': page,
-                'per_page': per_page,
-                'total_pages': items_.pages,
-                'total_items': items_.total
-            },
-            '_links': {
-                'self': url_for(endpoint, page=page, per_page=per_page,
-                                **kwargs),
-                'next': url_for(endpoint, page=page + 1, per_page=per_page,
-                                **kwargs) if items_.has_next else None,
-                'prev': url_for(endpoint, page=page - 1, per_page=per_page,
-                                **kwargs) if items_.has_prev else None
-            }
-        }
-        return data
-
-
-class WebResource(PaginationMixin, db.Model):
+class WebResource(db.Model):
     """Model for urls."""
     id = db.Column(db.Integer, primary_key=True)
     uuid = db.Column(UUID(as_uuid=True), default=uuid.uuid4, index=True)

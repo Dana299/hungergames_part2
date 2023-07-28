@@ -1,5 +1,6 @@
-from typing import List, Optional
+from typing import List, Optional, TypedDict
 
+from flask import url_for
 from sqlalchemy import desc
 from sqlalchemy.orm.query import Query
 from werkzeug.datastructures import FileStorage
@@ -9,6 +10,12 @@ from main.db.models import (FileProcessingRequest, NewsFeedItem, StatusOption,
                             WebResource, WebResourceStatus)
 from main.service import exceptions
 from main.utils.urlparser import parse_url
+
+
+class PaginatedItemDict(TypedDict):
+    items: List
+    _meta: dict
+    _links: dict
 
 
 def create_web_resource(validated_url: str) -> WebResource:
@@ -275,3 +282,30 @@ def get_resource_page(resource_uuid: int):
         filter(WebResource.uuid == resource_uuid)
     # Execute the query and retrieve the results
     return query.all()
+
+
+def paginate_query(query, page, per_page, endpoint, **kwargs) -> PaginatedItemDict:
+    items_ = query.paginate(
+        page=page,
+        per_page=per_page,
+        error_out=False
+    )
+
+    data: PaginatedItemDict = {
+        'items': [item._asdict() for item in items_.items],
+        '_meta': {
+            'page': page,
+            'per_page': per_page,
+            'total_pages': items_.pages,
+            'total_items': items_.total
+        },
+        '_links': {
+            'self': url_for(endpoint, page=page, per_page=per_page,
+                            **kwargs),
+            'next': url_for(endpoint, page=page + 1, per_page=per_page,
+                            **kwargs) if items_.has_next else None,
+            'prev': url_for(endpoint, page=page - 1, per_page=per_page,
+                            **kwargs) if items_.has_prev else None
+        }
+    }
+    return data

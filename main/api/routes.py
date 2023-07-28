@@ -4,7 +4,6 @@ from flask import Response, jsonify, request, url_for
 from pydantic import ValidationError
 
 from main import app, bp, log_buffer, socketio
-from main.db import models, schemas
 from main.service import db, exceptions, handlers
 from main.utils.helpers import convert_to_serializable, make_int
 
@@ -19,36 +18,16 @@ def get_resources():
     page = make_int(request.args.get('page', default=1, type=int))
     per_page = make_int(request.args.get('per_page', default=10, type=int))
 
-    availability_dict = {
-        "true": True,
-        "false": False,
-        None: None,
-    }
-
-    query = db.get_web_resources_query(
-        left_join=True,
+    response = handlers.handle_get_resources_with_filters(
         domain_zone=domain_zone,
         resource_id=resource_id,
-        resource_uuid=uuid,
-        is_available=availability_dict.get(availability),
+        availability=availability,
+        page=page,
+        per_page=per_page,
+        uuid=uuid,
     )
 
-    paginated_resource_list = models.WebResource.get_paginated(
-        query,
-        page,
-        per_page,
-        'main.get_resources',
-    )
-
-    response = schemas.PaginatedResourceListSchema(
-        items=[
-            schemas.ResourceGetSchema(**item).dict() for item in paginated_resource_list["items"]
-        ],
-        meta=paginated_resource_list.get('_meta'),
-        links=paginated_resource_list.get('_links')
-    ).dict()
-
-    return jsonify(response)
+    return jsonify(response.dict())
 
 
 @bp.route("/resources/", methods=['POST'])
