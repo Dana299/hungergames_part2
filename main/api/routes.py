@@ -1,5 +1,3 @@
-from base64 import b64encode
-
 from flask import Response, jsonify, request, url_for
 from pydantic import ValidationError
 
@@ -147,12 +145,13 @@ def post_image_for_resource(resource_uuid: str):
 
 @bp.route("/resources/<uuid:resource_uuid>/", methods=["GET"])
 def get_resource_page(resource_uuid):
-    resource = db.get_resource_by_uuid(uuid_=resource_uuid)
+    try:
+        web_resource_data = handlers.handle_get_resource_data(resource_uuid)
+    except exceptions.NotFoundError:
+        return jsonify({"Error": "Resource with the given UUID not found."})
 
-    if not resource:
-        return jsonify({"Error": "Not found"}), 404
+    return jsonify(web_resource_data.dict())
 
-    # TODO: change forming the response with Pydantic Schemas
 
     else:
         # TODO: refactor

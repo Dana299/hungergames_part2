@@ -3,8 +3,7 @@ from typing import Optional
 
 from pydantic import ValidationError
 
-from main.db import schemas
-from main.db.models import StatusOption
+from main.db import models, schemas
 from main.service import db, exceptions
 from main.tasks import (FileProcessingTaskResponse,
                         process_urls_from_zip_archive)
@@ -68,7 +67,7 @@ def handle_get_request_status(request_id, storage_client) -> FileProcessingTaskR
     if not processing_request:
         raise exceptions.NotFoundError
 
-    if processing_request.status == StatusOption.INPROCESS:
+    if processing_request.status == models.StatusOption.INPROCESS:
         task_id = processing_request.task_id
         status_info_from_storage = storage_client.get(name=task_id)
 
@@ -132,3 +131,31 @@ def handle_get_resources_with_filters(
     )
 
     return paginated_resources_with_meta_data
+
+
+def handle_get_resource_data(resource_uuid: str) -> schemas.ResourcePageSchema:
+
+    # TODO: refactor!!!
+
+    try:
+        page = db.get_resource_page(resource_uuid=resource_uuid)
+        resource: models.WebResource = page[0][0]   # WebResource is on the 1 position in tuple
+        events = []
+
+        for item in page:
+            news_item: models.NewsFeedItem = item[1]  # NewsFeedItem is on the 2 position in tuple
+            if news_item:
+                news_dict = {
+                    "event_type": news_item.event_type.value,
+                    "timestamp": news_item.timestamp.isoformat()
+                }
+                events.append(news_dict)
+
+        resource_page = schemas.ResourcePageSchema(
+            **resource.__dict__, events=events,
+        )
+
+        return resource_page
+
+    except exceptions.NotFoundError:
+        raise

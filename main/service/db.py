@@ -1,4 +1,4 @@
-from typing import List, Optional, TypedDict
+from typing import List, NoReturn, Optional, TypedDict
 
 from flask import url_for
 from sqlalchemy import desc
@@ -152,8 +152,12 @@ def update_counter_for_resource_availability(resource: WebResource, is_available
     db.session.commit()
 
 
-def get_resource_by_uuid(uuid_: str) -> WebResource:
+def get_resource_by_uuid(uuid_: str) -> WebResource | NoReturn:
     resource = WebResource.query.filter_by(uuid=uuid_).first()
+
+    if not resource:
+        raise exceptions.NotFoundError
+
     return resource
 
 
@@ -268,12 +272,12 @@ def create_newsfeed_item(resource, event):
     db.session.commit()
 
 
-def get_resource_page(resource_uuid: int):
+def get_resource_page(resource_uuid: str):
     """Get all WebResource data including related."""
-    resource = WebResource.query.filter(WebResource.uuid == resource_uuid).first()
-
-    if not resource:
-        return None
+    try:
+        get_resource_by_uuid(resource_uuid)
+    except exceptions.NotFoundError:
+        raise
 
     # Join the News and StatusCode tables with the WebResource table
     query = db.session.query(WebResource, NewsFeedItem, WebResourceStatus).\

@@ -1,4 +1,5 @@
 from base64 import b64encode
+from datetime import datetime
 from typing import List, Optional
 
 from pydantic import UUID4, AnyHttpUrl, BaseModel, root_validator, validator
@@ -68,3 +69,12 @@ class ZipFileRequestSchema(FileRequestSchema):
             raise ValueError('Invalid file type. Only ZIP files are allowed.')
 
         return file
+
+
+class NewsFeedItemSchema(BaseModel):
+    event_type: str
+    timestamp: datetime
+
+
+class ResourcePageSchema(ResourceGetSchema):
+    events: List[NewsFeedItemSchema]
