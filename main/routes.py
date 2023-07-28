@@ -1,14 +1,29 @@
 from flask import redirect, render_template, request, url_for
 
 from main import app, forms
-from main.service import db, exceptions
+from main.service import db, exceptions, handlers
 from main.tasks import process_urls_from_zip_archive
 
 
 @app.route("/resources/", methods=["GET"])
 def index():
-    app.logger.info(f"GET - main page on {request.url} visited")
-    return render_template("index.html")
+    domain_zone = request.args.get('domain_zone', None)
+    resource_id = request.args.get('id', type=int)
+    uuid = request.args.get('uuid', None)
+    availability = request.args.get('availability', None)
+    page = request.args.get('page', default=1, type=int)
+    per_page = request.args.get('per_page', default=10, type=int)
+
+    response = handlers.handle_get_resources_with_filters(
+        domain_zone=domain_zone,
+        resource_id=resource_id,
+        availability=availability,
+        page=page,
+        per_page=per_page,
+        uuid=uuid,
+    )
+
+    return render_template('index.html', data=response.dict())
 
 
 @app.route("/logs/", methods=["GET"])
