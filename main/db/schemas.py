@@ -78,3 +78,12 @@ class NewsFeedItemSchema(BaseModel):
 
 class ResourcePageSchema(ResourceGetSchema):
     events: List[NewsFeedItemSchema]
+
+
+class LogRecordSchema(BaseModel):
+    level: str
+    message: str
+
+
+class LogListGetSchema(BaseModel):
+    logs: List[LogRecordSchema]

@@ -2,6 +2,7 @@ from flask import Response, jsonify, request, url_for
 from pydantic import ValidationError
 
 from main import app, bp, log_buffer, socketio
+from main.db import schemas
 from main.service import db, exceptions, handlers
 from main.utils.helpers import convert_to_serializable, make_int
 
@@ -156,9 +157,10 @@ def get_resource_page(resource_uuid):
 
 @bp.route("/logs/", methods=["GET"])
 def get_logs():
-    # TODO: put logs from buffer and return as response
-    ...
-    return jsonify()
+    log_response = schemas.LogListGetSchema(
+        logs=[schemas.LogRecordSchema(**log) for log in log_buffer]
+    )
+    return jsonify(log_response.dict())
 
 
 @socketio.on("connect", namespace="/logs")
