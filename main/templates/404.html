@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container mt-4">
+
+    <div class="card bg-transparent shadow p-3 mb-5 bg-white rounded">
+        <div class="card-body">
+
+        <h1>Страница не найдена</h1>
+        <p>Упс, мы ничего не нашли по заданному запросу :(
+        <p><a href="{{ url_for('index') }}" class="text-decorated-none">Вернуться на главную страницу</a>
+
+        </div>
+    </div>
+
+  </div>
+
+{% endblock %}

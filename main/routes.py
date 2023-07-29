@@ -79,7 +79,8 @@ def get_resource_page(resource_uuid):
     try:
         resource_data = handlers.handle_get_resource_data(resource_uuid)
     except exceptions.NotFoundError:
-        return jsonify({"Error": "Resource with the given UUID not found."})
+        return render_template('404.html'), 404
+
     app.logger.info(f"GET - resource page {request.url} visited")
     return render_template("resource_page.html", resource_data=resource_data)
 
@@ -93,5 +94,4 @@ def get_processing_request_page(request_id):
         )
         return render_template("request_page.html", resourceData=status_info)
     except exceptions.NotFoundError:
-        # TODO: return template instead
-        return "Processing request not found.", 404
+        return render_template('404.html'), 404
