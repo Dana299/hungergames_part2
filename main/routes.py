@@ -76,8 +76,12 @@ def test_logs():
 
 @app.route("/resources/<uuid:resource_uuid>", methods=["GET"])
 def get_resource_page(resource_uuid):
+    try:
+        resource_data = handlers.handle_get_resource_data(resource_uuid)
+    except exceptions.NotFoundError:
+        return jsonify({"Error": "Resource with the given UUID not found."})
     app.logger.info(f"GET - resource page {request.url} visited")
-    return render_template("resource_page.html")
+    return render_template("resource_page.html", resource_data=resource_data)
 
 
 @app.route("/processing-requests/<int:request_id>", methods=["GET"])

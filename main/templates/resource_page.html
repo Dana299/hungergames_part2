@@ -2,113 +2,85 @@
 {% extends 'base.html' %}
 
 {% block content %}
-    <div class="container mt-4">
+<div class="container mt-4">
 
-        <h1 id="fullURL"></h1>
+    <div id="resource-container">
+
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item "><a href="{{ url_for('index') }}" class="text-decoration-none">Веб-ресурсы</a></li>
+              <li class="breadcrumb-item active" aria-current="page">{{ resource_data.full_url }}</li>
+            </ol>
+        </nav>
+
         <hr>
+        <h1>{{ resource_data.full_url }}</h1>
 
-        <div id="resource-container">
+        <div class="card shadow p-3 mb-5 bg-white rounded">
 
-        <div class="row gx-5">
-            <div class="col-md-6 mb-4">
-              <div class="bg-image hover-overlay ripple shadow-2-strong rounded-5" data-mdb-ripple-color="light">
-                <img id="screenshotImg" src="" alt="Картинка" class="img-fluid">
-                <a href="#!">
-                  <div class="mask" style="background-color: rgba(251, 251, 251, 0.15);"></div>
-                </a>
-              </div>
-            </div>
-
-            <!-- Добавим блок с данными о веб-ресурсе -->
-            <div class="col-md-6 mb-4">
-                <div class="card bg-light mb-3">
-                    <div class="card-header">
-                        <p>Данные о веб ресурсе</p>
+            <div class="row gx-5">
+                <div class="col-md-6 mb-4">
+                    <div class="bg-image hover-overlay ripple shadow-2-strong rounded-5" data-mdb-ripple-color="light">
+                        <img id="screenshotImg" src="data:image/png;base64,{{ resource_data.screenshot }}" alt="Картинка" class="img-fluid">
+                        <a href="#!">
+                            <div class="mask" style="background-color: rgba(251, 251, 251, 0.15);"></div>
+                        </a>
                     </div>
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between">
-                            <span>URL: </span><span id="fullURL">''</span>
-                        </div>
-                        <div class="d-flex justify-content-between">
-                            <span>Протокол: </span><span id="protocol">''</span>
-                        </div>
-                        <div class="d-flex justify-content-between">
-                            <span>Путь: </span><span id="urlPath">''</span>
-                        </div>
-                        <div class="d-flex justify-content-between">
-                            <span>Домен: </span><span id="domain">''</span>
-                        </div>
-                        <div class="d-flex justify-content-between">
-                            <span>Доменная зона: </span><span id="domainZone">''</span>
-                        </div>
-                        <div class="d-flex justify-content-between">
-                            <span>Query-параметры: </span><span id="queryParams">''</span>
+                </div>
+
+                <div class="col-md-6 mb-4">
+                    <div class="card bg-transparent shadow p-3 mb-5 bg-white rounded">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <span>Протокол: </span><span>{{ resource_data.protocol }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Путь: </span><span>{{ resource_data.url_path }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Домен: </span><span>{{ resource_data.domain }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Доменная зона: </span><span>{{ resource_data.domain_zone }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Query-параметры: </span><span>{{ resource_data.query_params }}</span>
+                            </div>
                         </div>
                     </div>
-                  </div>
-                <div>
-                    <button onclick="history.back()" class="btn btn-primary">Назад</button>
-                    <!-- <a href="/resources/" class="btn btn-primary">Назад к таблице ресурсов</a> -->
+                </div>
             </div>
-          </div>
 
         </div>
+
+        <h2 class="position-relative">
+            Новости веб-ресурса
+            <span class="translate-middle badge badge-secondary rounded-pill bg-info">
+                {{ resource_data.events|length }}
+                <span class="visually-hidden">unread messages</span>
+            </span>
+        </h2>
+
+        {% if resource_data.events %}
+            {% for event in resource_data.events %}
+            <div class="card bg-transparent shadow p-3 mb-5 bg-white rounded">
+                <div class="card-body">
+                    {% if event.event_type == "resource_added" %}
+                    <h5 class="card-title">Ресурс добавлен</h5>
+                    {% elif event.event_type == "status_changed" %}
+                    <h5 class="card-title">Обновлен статус ответа ресурса</h5>
+                    {% elif event.event_type == "photo_added" %}
+                    <h5 class="card-title">Добавлен скриншот содержимого веб-ресурса</h5>
+                    {% elif event.event_type == "resource_deleted" %}
+                    <h5 class="card-title">Веб-ресурс удален из мониторинга</h5>
+                    {% endif %}
+                    <p class="card-text text-end">{{ event.timestamp.strftime('%d-%m-%Y %H:%M:%S') }}</p>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <h4>Нет новостей</h4>
+        {% endif %}
+
     </div>
-
-<script>
-
-    document.addEventListener('DOMContentLoaded', function() {
-        const resourceUUID = window.location.href.split('/').reverse()[0];
-
-        getWebResourceData(resourceUUID);
-      });
-
-    function getWebResourceData(resourceUUID) {
-        var xhr = new XMLHttpRequest();
-
-        xhr.open('GET', '/api/resources/' + resourceUUID);
-        console.log(resourceUUID);
-
-        xhr.onload = function() {
-        if (xhr.status === 200) {
-            var resourceData = JSON.parse(xhr.responseText);
-            // display response data and pagination block
-            displayResourceData(resourceData);
-
-        } else {
-            console.error('Ошибка при получении данных веб-ресурса:', xhr.status);
-        }
-        };
-
-        xhr.onerror = function() {
-            console.error('Ошибка при выполнении запроса');
-        };
-
-        xhr.send();
-    }
-
-    function displayResourceData(resourceData) {
-        const base64String = resourceData.screenshot;
-        const dataURI = `data:image/png;base64,${base64String}`;
-        const imgElement = document.getElementById('screenshotImg');
-        imgElement.src = dataURI;
-
-        const fullURLElement = document.getElementById('fullURL');
-        fullURLElement.innerHTML = resourceData.url
-
-        const protocolElement = document.getElementById('protocol');
-        protocolElement.innerHTML = resourceData.protocol
-
-        const domainElement = document.getElementById('domain');
-        domainElement.innerHTML = resourceData.domain
-
-        const urlPathElement = document.getElementById('urlPath');
-        urlPathElement.innerHTML = resourceData.url_path
-
-        const domainZoneElement = document.getElementById('domainZone');
-        domainZoneElement.innerHTML = resourceData.domain_zone
-
-    }
-
-</script>
 {% endblock %}
