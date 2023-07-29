@@ -153,6 +153,13 @@ def get_resource_page(resource_uuid):
     return jsonify(web_resource_data.dict())
 
 
+@bp.route("/logs/", methods=["GET"])
+def get_logs():
+    # TODO: put logs from buffer and return as response
+    ...
+    return jsonify()
+
+
 @socketio.on("connect", namespace="/logs")
 def connect():
     # app.logger.info("Websocket connection to /logs page")
