@@ -153,37 +153,6 @@ def get_resource_page(resource_uuid):
     return jsonify(web_resource_data.dict())
 
 
-    else:
-        # TODO: refactor
-        page = db.get_resource_page(resource_uuid=resource_uuid)
-        resource = page[0][0]   # WebResource is on the 1 position in tuple
-        data = []
-
-        for item in page:
-            news_item = item[1]  # NewsFeedItem is on the 2 position in tuple
-            if news_item:
-                news_dict = {
-                    "event_type": news_item.event_type.value,
-                    "timestamp": news_item.timestamp.isoformat()
-                }
-                data.append(news_dict)
-
-        if resource.screenshot:
-            screenshot_base64 = b64encode(news_item.resource.screenshot).decode("utf-8")
-        else:
-            screenshot_base64 = None
-
-        return jsonify(
-            url=resource.full_url,
-            url_path=resource.url_path,
-            protocol=resource.protocol,
-            domain=resource.domain,
-            domain_zone=resource.domain_zone,
-            screenshot=screenshot_base64,
-            events=data,
-        )
-
-
 @socketio.on("connect", namespace="/logs")
 def connect():
     # app.logger.info("Websocket connection to /logs page")
