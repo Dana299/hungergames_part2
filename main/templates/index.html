@@ -5,7 +5,7 @@
     <div class="container mt-4">
         <h4>Веб-ресурсы: {{ data.meta.total_items }}</h4>
         <div class="row">
-            <div class="col-md-3">
+            <div class="col-md-3" id="filter-container">
                 <div class="card bg-transparent shadow p-3 mb-5 bg-white rounded">
                     <div class="card-body">
                         <form action="{{ url_for('index') }}" method="GET">
@@ -34,12 +34,6 @@
                             </div>
 
                             <div class="mb-3">
-                                <label for="page" class="form-label">Страница:</label>
-                                <input type="number" name="page" id="page" value="{{ request.args.get('page', 1) }}" class="form-control">
-                            </div>
-
-
-                            <div class="mb-3">
                                 <label for="per_page" class="form-label">Ресурсов на странице:</label>
                                 <input type="number" name="per_page" id="per_page" value="{{ request.args.get('per_page', 10) }}" class="form-control">
                             </div>
@@ -57,7 +51,7 @@
                 {% elif resource.is_available == false %}
                     <div class="card alert-danger bg-gradient text-dark shadow p-3 mb-3">
                 {% else %}
-                    <div class="card alert-info bg-gradient text-dark shadow p-3 mb-3">
+                    <div class="card alert-secondary bg-gradient text-dark shadow p-3 mb-3">
                 {% endif %}
                     <div class="card-body">
                         <h5 class="card-title">
