@@ -118,29 +118,30 @@ def get_status_of_processing_request(request_id: int):
 @bp.route("/resources/<uuid:resource_uuid>/", methods=["POST"])
 def post_image_for_resource(resource_uuid: str):
     """Router for posting images for resource with the given UUID."""
-    resource = db.get_resource_by_uuid(resource_uuid)
 
-    if not resource:
-        app.logger.info(f"404 - POST request to {request.url} with ID that does not exist.")
-        return Response(status=404)
+    if request.files:
+        try:
+            handlers.handle_add_image_for_web_resource(
+                files=request.files,
+                resource_uuid=resource_uuid,
+
+            )
+            return Response(status=201)
+
+        except exceptions.NotFoundError:
+            return jsonify({"Error": "Web resource with the givent UUID not found."}), 404
+
+        except ValidationError as e:
+            # app.logger.info(f""")
+            errors = convert_to_serializable(e.errors())
+            response = {
+                'error': 'Validation error',
+                'message': errors,
+            }
+            return jsonify(response), 400
 
     else:
-        if request.files:
-            try:
-                handlers.handle_post_image(request.files, resource)
-                return Response(status=201)
-
-            except ValidationError as e:
-                # app.logger.info(f""")
-                errors = convert_to_serializable(e.errors())
-                response = {
-                    'error': 'Validation error',
-                    'message': errors,
-                }
-                return jsonify(response), 400
-
-        else:
-            return jsonify({"Error": "Invalid request format"}), 400
+        return jsonify({"Error": "Invalid request format"}), 400
 
 
 @bp.route("/resources/<uuid:resource_uuid>/", methods=["GET"])

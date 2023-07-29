@@ -2,6 +2,7 @@ import json
 from typing import Optional
 
 from pydantic import ValidationError
+from werkzeug.datastructures.structures import ImmutableMultiDict
 
 from main.db import models, schemas
 from main.service import db, exceptions
@@ -52,10 +53,14 @@ def handle_post_url_file(files) -> int:
     return processing_request_id
 
 
-def handle_post_image(files, resource):
+def handle_add_image_for_web_resource(files: ImmutableMultiDict, resource_uuid: str) -> None:
     try:
+        web_resource = db.get_resource_by_uuid(resource_uuid)
         validated_data = schemas.FileRequestSchema(**files)
-        db.add_image_to_resource(resource, validated_data.file)
+        db.add_image_to_resource(web_resource, validated_data.file)
+
+    except exceptions.NotFoundError:
+        raise
 
     except ValidationError as e:
         raise e

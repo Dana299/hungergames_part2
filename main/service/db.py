@@ -161,10 +161,10 @@ def get_resource_by_uuid(uuid_: str) -> WebResource | NoReturn:
     return resource
 
 
-def add_image_to_resource(resource: WebResource, image: FileStorage):
+def add_image_to_resource(web_resource: WebResource, image: FileStorage):
     """Add screenshot to resource in DB."""
-    resource.screenshot = image.read()
-    db.session.add(resource)
+    web_resource.screenshot = image.read()
+    db.session.add(web_resource)
     db.session.commit()
 
     # create_newsfeed_item(
