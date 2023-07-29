@@ -86,4 +86,12 @@ def get_resource_page(resource_uuid):
 
 @app.route("/processing-requests/<int:request_id>", methods=["GET"])
 def get_processing_request_page(request_id):
-    return render_template("request_page.html")
+    try:
+        status_info = handlers.handle_get_request_status(
+            request_id=request_id,
+            storage_client=app.extensions["redis"]
+        )
+        return render_template("request_page.html", resourceData=status_info)
+    except exceptions.NotFoundError:
+        # TODO: return template instead
+        return "Processing request not found.", 404
