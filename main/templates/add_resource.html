@@ -4,74 +4,85 @@
 
 {% block content %}
     <div class="container mt-4">
-        <h1>Add New Web Resources</h1>
+        <h1>Добавить новые веб-ресурсы</h1>
         <hr>
 
         <div class="mb-3">
-            <h5>
+            <h4>
                 Введите ссылку:
-            </h5>
+            </h4>
         </div>
 
-        <form id="text-form" method="post" action="{{ url_for('add_resource') }}">
-            <div class="mb-3">
-                <div class="form-group">
-                    {{ form_text.csrf_token }}
-                    {{ form_text.url(class="form-control", placeholder="Enter URL", id="text-input") }}
-                    {{ form_text.hidden_tag() }}
-                </div>
+        <div class="card shadow p-3 mb-5 bg-white rounded">
+            <div class="card-body">
+
+                <form id="text-form" method="post" action="{{ url_for('add_resource') }}">
+                    <div class="mb-3">
+                        <div class="form-group">
+                            {{ form_text.csrf_token }}
+                            {{ form_text.url(class="form-control", placeholder="Enter URL", id="text-input") }}
+                            {{ form_text.hidden_tag() }}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        {% if form_text.url.errors %}
+                        {% for error in form_text.url.errors %}
+                            <div class="alert alert-danger" role="alert">{{ error }}</div>
+                        {% endfor %}
+                        {% endif %}
+                    </div>
+
+                    {{ form_text.submit_text(class="btn btn-primary", id="sendUrlButton", disabled="true") }}
+
+                </form>
+
             </div>
-
-            <div class="mb-3">
-                {% if form_text.url.errors %}
-                {% for error in form_text.url.errors %}
-                    <div class="alert alert-danger" role="alert">{{ error }}</div>
-                {% endfor %}
-                {% endif %}
-            </div>
-
-            {{ form_text.submit_text(class="btn btn-primary", id="sendUrlButton", disabled="true") }}
-
-        </form>
+        </div>
 
         <div class="mb-3">
-            <h5>
+            <h4>
                 Или прикрепите ZIP-архив с CSV файлом, где каждая строка - ссылка:
-            </h5>
+            </h4>
         </div>
 
-        <form id="file-form" method="post" action="{{ url_for('add_resource') }}" enctype="multipart/form-data">
-            <div class="mb-3">
-                <div class="form-group">
-                    {{ form_file.csrf_token }}
-                    {{ form_file.file(class="form-control", id="file-input") }}
-                    {{ form_file.hidden_tag() }}
-                </div>
+        <div class="card shadow p-3 mb-5 bg-white rounded">
+            <div class="card-body">
+
+                <form id="file-form" method="post" action="{{ url_for('add_resource') }}" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <div class="form-group">
+                            {{ form_file.csrf_token }}
+                            {{ form_file.file(class="form-control", id="file-input") }}
+                            {{ form_file.hidden_tag() }}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        {% if form_file.file.errors %}
+                        {% for error in form_file.file.errors %}
+                            <div class="alert alert-danger" role="alert">{{ error }}</div>
+                        {% endfor %}
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="alert" style="display:none;">Файл был успешно отправлен.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form_file.submit_file(class="btn btn-primary", id="sendFileButton", disabled="true") }}
+                    </div>
+
+                </form>
             </div>
-
-            <div class="mb-3">
-                {% if form_file.file.errors %}
-                {% for error in form_file.file.errors %}
-                    <div class="alert alert-danger" role="alert">{{ error }}</div>
-                {% endfor %}
-                {% endif %}
-            </div>
-
-            <div class="alert" style="display:none;">Файл был успешно отправлен.</div>
-            {{ form_file.submit_file(class="btn btn-primary", id="sendFileButton", disabled="true") }}
-        </form>
-
-        <hr>
+        </div>
 
 <script>
     const textInput = document.getElementById('text-input')
     const sendUrlButton = document.getElementById('sendUrlButton');
     const fileInput = document.getElementById('file-input');
     const sendFileButton = document.getElementById('sendFileButton');
-
-    const textForm = document.getElementById('text-form');
-    const fileForm = document.getElementById('file-form');
-
 
     fileInput.addEventListener('input', () => {
         if (fileInput.files.length > 0) {
