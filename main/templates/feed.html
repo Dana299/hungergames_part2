@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <div id="resource-container">
+
+        <h1>Новости</h1>
+
+        {% if feed %}
+            {% for event in feed.feed_items %}
+            <div class="card alert-secondary bg-gradient text-dark shadow p-3 mb-3">
+                <div class="card-body">
+                    <h3>
+                        <a href="{{ url_for('get_resource_page', resource_uuid=event.web_resource.uuid) }}" class="text-decoration-none">
+                            {{ event.web_resource.full_url }}
+                        </a>
+                    </h3>
+                    {% if event.event_type == "resource_added" %}
+                    <h5 class="card-title">Ресурс добавлен</h5>
+                    {% elif event.event_type == "status_changed" %}
+                    <h5 class="card-title">Обновлен статус ответа ресурса</h5>
+                    {% elif event.event_type == "photo_added" %}
+                    <h5 class="card-title">Добавлен скриншот содержимого веб-ресурса</h5>
+                    {% elif event.event_type == "resource_deleted" %}
+                    <h5 class="card-title">Веб-ресурс удален из мониторинга</h5>
+                    {% endif %}
+                    <p class="card-text text-end">{{ event.timestamp.strftime('%d-%m-%Y %H:%M:%S') }}</p>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <h4>Нет новостей</h4>
+        {% endif %}
+
+    </div>
+{% endblock %}

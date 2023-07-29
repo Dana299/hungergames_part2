@@ -95,3 +95,9 @@ def get_processing_request_page(request_id):
         return render_template("request_page.html", resourceData=status_info)
     except exceptions.NotFoundError:
         return render_template('404.html'), 404
+
+
+@app.route("/feed/", methods=["GET"])
+def get_news_feed():
+    feed_items = handlers.handle_get_news_feed()
+    return render_template("feed.html", feed=feed_items)

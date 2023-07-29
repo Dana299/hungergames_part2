@@ -10,13 +10,16 @@ class ResourceCreateRequestSchema(BaseModel):
     url: AnyHttpUrl
 
 
-class ResourceCreateResponseSchema(BaseModel):
+class ResourceBaseSchema(BaseModel):
     uuid: UUID4
+    full_url: str
+
+
+class ResourceCreateResponseSchema(ResourceBaseSchema):
     protocol: str
     domain: str
     domain_zone: str
     url_path: Optional[str]
-    full_url: str
     query_params: Optional[dict]
 
 
@@ -78,6 +81,14 @@ class NewsFeedItemSchema(BaseModel):
 
 class ResourcePageSchema(ResourceGetSchema):
     events: List[NewsFeedItemSchema]
+
+
+class NewsFeedItemWithWebResourceSchema(NewsFeedItemSchema):
+    web_resource: ResourceBaseSchema
+
+
+class NewsFeedSchema(BaseModel):
+    feed_items: List[NewsFeedItemWithWebResourceSchema]
 
 
 class LogRecordSchema(BaseModel):

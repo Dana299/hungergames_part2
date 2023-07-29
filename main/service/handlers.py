@@ -164,3 +164,20 @@ def handle_get_resource_data(resource_uuid: str) -> schemas.ResourcePageSchema:
 
     except exceptions.NotFoundError:
         raise
+
+
+def handle_get_news_feed() -> schemas.NewsFeedSchema:
+    """Handle request for getting all news feed items."""
+    news_items_from_db = db.get_news_items()
+    feed_items = [
+        schemas.NewsFeedItemWithWebResourceSchema(
+            event_type=item.event_type.value,
+            timestamp=item.timestamp,
+            web_resource=schemas.ResourceBaseSchema(
+                **item.resource.__dict__
+            )
+        )
+        for item in news_items_from_db
+    ]
+
+    return schemas.NewsFeedSchema(feed_items=feed_items)

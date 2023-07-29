@@ -2,6 +2,7 @@ from typing import List, NoReturn, Optional, TypedDict
 
 from flask import url_for
 from sqlalchemy import desc
+from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.query import Query
 from werkzeug.datastructures import FileStorage
 
@@ -286,6 +287,15 @@ def get_resource_page(resource_uuid: str):
         filter(WebResource.uuid == resource_uuid)
     # Execute the query and retrieve the results
     return query.all()
+
+
+def get_news_items():
+    """Retrieve all news feed items sorted by timestamp."""
+    news_items = NewsFeedItem.query \
+        .options(joinedload(NewsFeedItem.resource)) \
+        .order_by(NewsFeedItem.timestamp.desc()) \
+        .all()
+    return news_items
 
 
 def paginate_query(query, page, per_page, endpoint, **kwargs) -> PaginatedItemDict:
