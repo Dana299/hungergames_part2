@@ -106,18 +106,12 @@ def handle_get_resources_with_filters(
     per_page: Optional[int],
 ) -> schemas.PaginatedResourceListSchema:
 
-    availability_dict = {
-        "true": True,
-        "false": False,
-        None: None,
-    }
-
     query = db.get_web_resources_query(
         left_join=True,
         domain_zone=domain_zone,
         resource_id=resource_id,
         resource_uuid=uuid,
-        is_available=availability_dict.get(availability),
+        is_available=availability,
     )
 
     paginated_resource_list = db.paginate_query(

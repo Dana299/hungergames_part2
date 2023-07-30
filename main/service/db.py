@@ -57,7 +57,7 @@ def get_web_resources_query(
     domain_zone: Optional[str] = None,
     resource_id: Optional[int] = None,
     resource_uuid: Optional[str] = None,
-    is_available: Optional[bool] = None,
+    is_available: Optional[str] = None,
     unavailable_count: Optional[int] = None,
 ) -> Query:
     """
@@ -99,7 +99,15 @@ def get_web_resources_query(
     if resource_uuid:
         query = query.filter(WebResource.uuid == resource_uuid)
     if is_available:
-        query = query.filter(WebResourceStatus.is_available == is_available)
+
+        availability_dict = {
+            "true": True,
+            "false": False,
+        }
+
+        query = query.filter(
+            WebResourceStatus.is_available.is_(availability_dict.get(is_available))
+        )
     if unavailable_count:
         query = query.filter(WebResource.unavailable_count >= unavailable_count)
 
