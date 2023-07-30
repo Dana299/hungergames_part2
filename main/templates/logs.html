@@ -48,25 +48,32 @@
             background: skyblue;
         }
     </style>
-    <div class="container">
+    <div class="container mt-4">
         <div class="row">
             <div class="col">
-                <h1 class="text-center mb-4">Log Viewer</h1>
+                <h1 class="text-center mb-4">Логи</h1>
 
-                <label class="m-1 p-1 autoscroll">
-                    Auto-scroll
-                    <input id="autoscroll" type="checkbox" checked>
-                </label>
-                {#                <button class="btn btn-primary" onclick="generatePDF()">Save PDF</button>#}
-                <div id="logs" class="mb-4">
-                    <!-- Log messages will be dynamically added here -->
+                <div class="card bg-transparent shadow p-3 mb-5 bg-white rounded">
+                    <div class="card-body
+
+                        <label class="m-1 p-1 autoscroll">
+                            Пролистывать автоматически
+                            <input id="autoscroll" type="checkbox" checked>
+                        </label>
+                        {#                <button class="btn btn-primary" onclick="generatePDF()">Save PDF</button>#}
+                        <div id="logs" class="mb-4">
+                            <!-- Log messages will be dynamically added here -->
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.4/socket.io.js"
             integrity="sha512-aMGMvNYu8Ue4G+fHa359jcPb1u+ytAF+P2SCb+PxrjCdO3n3ZTxJ30zuH39rimUggmTwmh2u7wvQsDTHESnmfQ=="
-            crossorigin="anonymous"></script>
+            crossorigin="anonymous">
+    </script>
+
     <script>
         var socket = io('http://' + document.domain + ':' + location.port + '/logs');
 
@@ -149,7 +156,7 @@
             pdf.save('app_logs.pdf')
         }
     </script>
-    <button class="btn btn-primary" onclick="generatePDF()">Save PDF</button>
+    <button class="btn btn-primary" onclick="generatePDF()">Скачать PDF</button>
 
 </div>
 
