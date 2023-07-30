@@ -7,8 +7,8 @@ from sqlalchemy.orm.query import Query
 from werkzeug.datastructures import FileStorage
 
 from main.app import db
-from main.db.models import (FileProcessingRequest, NewsFeedItem, StatusOption,
-                            WebResource, WebResourceStatus)
+from main.db.models import (EventType, FileProcessingRequest, NewsFeedItem,
+                            StatusOption, WebResource, WebResourceStatus)
 from main.service import exceptions
 from main.utils.urlparser import parse_url
 
@@ -42,12 +42,10 @@ def create_web_resource(validated_url: str) -> WebResource:
         db.session.add(web_resource)
         db.session.commit()
 
-        # TODO: fix migration that add new EventType
-
-        # create_newsfeed_item(
-        #     resource=web_resource,
-        #     event=NewsFeedItem.EventType.RESOURCE_ADDED,
-        # )
+        create_newsfeed_item(
+            resource=web_resource,
+            event=EventType.RESOURCE_ADDED,
+        )
 
         return web_resource
 

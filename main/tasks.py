@@ -8,7 +8,7 @@ from redis import Redis
 
 from main import app
 from main.db import schemas
-from main.db.models import NewsFeedItem, StatusOption
+from main.db.models import EventType, StatusOption
 from main.service import db
 from main.utils import ziploader
 
@@ -63,7 +63,7 @@ def get_response_from_resources():
             if last_availability != is_available:
                 db.create_newsfeed_item(
                     resource=resource,
-                    event=NewsFeedItem.EventType.STATUS_CHANGED,
+                    event=EventType.STATUS_CHANGED,
                 )
 
 
