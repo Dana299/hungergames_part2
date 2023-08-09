@@ -1,4 +1,5 @@
 import json
+import os
 from typing import List, Optional, TypedDict
 
 import requests
@@ -78,7 +79,7 @@ def delete_unavailable_resources(unavailable_count: int):
 
 
 @shared_task
-def process_urls_from_zip_archive(zip_file: bytes, request_id: int):
+def process_urls_from_zip_archive(zip_file: str, request_id: int):
     """
     Celery task that processes urls from the file.
     This task iterates over the lines of the file and writes the result in redis on each step.
@@ -88,7 +89,10 @@ def process_urls_from_zip_archive(zip_file: bytes, request_id: int):
     # get celery task ID
     task_id = current_task.request.id
 
-    lines_from_csv = ziploader.get_lines_from_csv(zip_file=zip_file)
+    # TODO: fix bug UnicodeDecodeError
+
+    with open(file=os.path.join(app.config["UPLOAD_FOLDER"], zip_file)) as f:
+        lines_from_csv = ziploader.get_lines_from_csv(zip_file=f.read())
 
     processing_request = db.get_file_processing_request_by_id(request_id=request_id)
 

@@ -1,4 +1,6 @@
 LOG_PATH: &LOG_PATH logs/app.log
+UPLOAD_FOLDER: "./user_files"
+ALLOWED_EXTENSIONS: {'zip'}
 
 LOGGING:
   LEVEL: INFO

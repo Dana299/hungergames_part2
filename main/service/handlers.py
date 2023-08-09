@@ -1,13 +1,16 @@
 import json
+import os
 from typing import Optional
 
 from pydantic import ValidationError
 from werkzeug.datastructures.structures import ImmutableMultiDict
 
+from main import app
 from main.db import models, schemas
 from main.service import db, exceptions
 from main.tasks import (FileProcessingTaskResponse,
                         process_urls_from_zip_archive)
+from main.utils import ziploader
 
 
 def handle_post_url_json(body) -> schemas.ResourceCreateResponseSchema:
@@ -41,12 +44,24 @@ def handle_post_url_file(files) -> int:
     except ValidationError as e:
         raise e
 
+    if not ziploader.allowed_file(validated_data.file.filename):
+        raise exceptions.InvalidFileFormatError("File format is not in allowed extensions.")
+
+    else:
+        filename = ziploader.make_uuid_filename(validated_data.file.filename)
+        validated_data.file.save(
+            os.path.join(
+                app.config["UPLOAD_FOLDER"],
+                filename,
+            )
+        )
+
     # create ZipFileProcessingRequest model instance
     processing_request_id = db.create_file_processing_request()
 
     # create celery task and pass id of created request to it as argument
     process_urls_from_zip_archive.delay(
-        zip_file=validated_data.file.read(),
+        zip_file=filename,
         request_id=processing_request_id,
     )
 
