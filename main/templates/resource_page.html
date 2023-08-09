@@ -3,9 +3,7 @@
 
 {% block content %}
 <div class="container mt-4">
-
     <div id="resource-container">
-
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
               <li class="breadcrumb-item "><a href="{{ url_for('index') }}" class="text-decoration-none">Веб-ресурсы</a></li>
@@ -16,15 +14,14 @@
         <hr>
         <h1>{{ resource_data.full_url }}</h1>
 
-        <div class="card shadow p-3 mb-5 bg-white rounded">
-
+        <div class="card alert-secondary shadow p-5 mb-5 rounded">
             <div class="row gx-5">
                 <div class="col-md-6 mb-4">
-                    <div class="card bg-transparent shadow p-3 mb-5 bg-white rounded">
+                    <div class="card shadow p-3 mb-5 bg-white rounded">
                         <div class="card-body d-flex justify-content-center align-items-center">
                             <div class="bg-image hover-overlay ripple shadow-2-strong rounded-5" data-mdb-ripple-color="light">
                                 {% if resource_data.screenshot %}
-                                <img id="screenshotImg" src="data:image/png;base64,{{ resource_data.screenshot }}" alt="Картинка" class="img-fluid">
+                                    <img id="screenshotImg" src="data:image/png;base64,{{ resource_data.screenshot }}" alt="Картинка" class="img-fluid">
                                 {% else %}
                                     <img id="screenshotImg" src="{{ url_for('static', filename='images/default_screenshot.jpg') }}" alt="Default Image" class="img-fluid">
                                 {% endif %}
@@ -37,28 +34,46 @@
                 </div>
 
                 <div class="col-md-6 mb-4">
-                    <div class="card bg-transparent shadow p-3 mb-5 bg-white rounded">
+                    <div class="card shadow p-3 mb-5 bg-white rounded">
                         <div class="card-body">
                             <div class="d-flex justify-content-between">
-                                <span>Протокол: </span><span>{{ resource_data.protocol }}</span>
+                                <span style="font-size: 18px; font-weight: bold;">Протокол:</span>
+                                <span style="font-size: 18px;">{{ resource_data.protocol }}</span>
                             </div>
                             <div class="d-flex justify-content-between">
-                                <span>Путь: </span><span>{{ resource_data.url_path }}</span>
+                                <span style="font-size: 18px; font-weight: bold;">Путь:</span>
+                                <span style="font-size: 18px;">{{ resource_data.url_path }}</span>
                             </div>
                             <div class="d-flex justify-content-between">
-                                <span>Домен: </span><span>{{ resource_data.domain }}</span>
+                                <span style="font-size: 18px; font-weight: bold;">Домен:</span>
+                                <span style="font-size: 18px;">{{ resource_data.domain }}</span>
                             </div>
                             <div class="d-flex justify-content-between">
-                                <span>Доменная зона: </span><span>{{ resource_data.domain_zone }}</span>
+                                <span style="font-size: 18px; font-weight: bold;">Доменная зона:</span>
+                                <span style="font-size: 18px;">{{ resource_data.domain_zone }}</span>
                             </div>
                             <div class="d-flex justify-content-between">
-                                <span>Query-параметры: </span><span>{{ resource_data.query_params }}</span>
+                                <span style="font-size: 18px; font-weight: bold;">Последний код ответа:</span>
+                                <span style="font-size: 18px;">
+                                    {{ resource_data.status_code if resource_data.status_code is not none else 'нет данных' }}
+                                </span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span style="font-size: 18px; font-weight: bold;">Query-параметры:</span>
+                                <span style="font-size: 18px;">
+                                    {% if resource_data.query_params %}
+                                        {% for key, value in resource_data.query_params.items() %}
+                                            {{ key }}: {{ value }}{% if not loop.last %}, {% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                        Нет параметров
+                                    {% endif %}
+                                </span>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-
         </div>
 
         <h2 class="position-relative">
@@ -71,7 +86,7 @@
 
         {% if resource_data.events %}
             {% for event in resource_data.events %}
-            <div class="card bg-transparent shadow p-3 mb-5 bg-white rounded">
+            <div class="card alert-secondary shadow p-3 mb-5 rounded">
                 <div class="card-body">
                     {% if event.event_type == "resource_added" %}
                     <h5 class="card-title">Ресурс добавлен</h5>
@@ -89,6 +104,6 @@
         {% else %}
             <h4>Нет новостей</h4>
         {% endif %}
-
     </div>
+</div>
 {% endblock %}

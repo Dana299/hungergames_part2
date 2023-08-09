@@ -4,29 +4,28 @@
 {% block content %}
     <div class="container mt-4">
 
-        <h1 id="fullURL"></h1>
+        <h1>
+            Информация об обработке файла
+        </h1>
         <hr>
 
         <div id="resource-container">
             <div class="col-md-6 mb-6">
                 <div class="card bg-light mb-3">
-                    <div class="card-header">
-                        <p>Информация об обработке файла</p>
-                    </div>
                     <div class="card-body">
                         <ul class="list-group list-group-flush">
 
-                            <li class="list-group-item">Статус обработки: {% if resourceData.status == "in_process" %}в обработке{% elif resourceData.status == "pending" %}в очереди на обработку{% elif resourceData.status == "succeeded" %}завершена{% endif %}</li>
+                            <li class="list-group-item">Статус обработки: {% if resource_data.status == "in_process" %}в обработке{% elif resource_data.status == "pending" %}в очереди на обработку{% elif resource_data.status == "succeeded" %}завершена{% endif %}</li>
 
-                            <li class="list-group-item">Строк в файле: {{ resourceData.total }}</li>
+                            <li class="list-group-item">Строк в файле: {{ resource_data.total }}</li>
 
-                            <li class="list-group-item">Обработано строк в файле: {{ resourceData.processed }}</li>
+                            <li class="list-group-item">Обработано строк в файле: {{ resource_data.processed }}</li>
 
-                            <li class="list-group-item">Число строк с невалидными ссылками: {{ resourceData.errors.count }}</li>
+                            <li class="list-group-item">Число строк с невалидными ссылками: {{ resource_data.errors.count }}</li>
 
-                            {% if resourceData.errors.count > 0 %}
+                            {% if resource_data.errors.count and resource_data.errors.count > 0 %}
                                 <li class="list-group-item">
-                                    {% for errorUrl in resourceData.errors.error_urls %}
+                                    {% for errorUrl in resource_data.errors.error_urls %}
                                         {{ errorUrl }}<br>
                                     {% endfor %}
                                 </li>

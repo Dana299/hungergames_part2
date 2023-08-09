@@ -92,7 +92,7 @@ def get_processing_request_page(request_id):
             request_id=request_id,
             storage_client=app.extensions["redis"]
         )
-        return render_template("request_page.html", resourceData=status_info)
+        return render_template("request_page.html", resource_data=status_info)
     except exceptions.NotFoundError:
         return render_template('404.html'), 404
 
