@@ -89,10 +89,9 @@ def process_urls_from_zip_archive(zip_file: str, request_id: int):
     # get celery task ID
     task_id = current_task.request.id
 
-    # TODO: fix bug UnicodeDecodeError
-
-    with open(file=os.path.join(app.config["UPLOAD_FOLDER"], zip_file)) as f:
-        lines_from_csv = ziploader.get_lines_from_csv(zip_file=f.read())
+    lines_from_csv = ziploader.get_lines_from_csv(
+        zip_file=os.path.join(app.config["UPLOAD_FOLDER"], zip_file)
+    )
 
     processing_request = db.get_file_processing_request_by_id(request_id=request_id)
 
