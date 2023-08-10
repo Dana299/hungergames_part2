@@ -5,6 +5,7 @@ import zipfile
 from typing import List
 
 from main import app
+from main.service import exceptions
 
 
 def allowed_file(filename: str):
@@ -23,7 +24,7 @@ def get_lines_from_csv(zip_file: str) -> List[str]:
         # search CSV files in archive
         csv_files = [file for file in zip_ref.namelist() if file.endswith('.csv')]
         if len(csv_files) == 0:
-            raise ValueError('No CSV file found in the zip archive.')
+            raise exceptions.NoCSVFileError('No CSV file found in the zip archive.')
 
         csv_file = csv_files[0]
 

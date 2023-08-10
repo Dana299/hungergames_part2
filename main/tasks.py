@@ -10,7 +10,7 @@ from redis import Redis
 from main import app
 from main.db import schemas
 from main.db.models import EventType, StatusOption
-from main.service import db
+from main.service import db, exceptions
 from main.utils import ziploader
 
 
@@ -89,75 +89,89 @@ def process_urls_from_zip_archive(zip_file: str, request_id: int):
     # get celery task ID
     task_id = current_task.request.id
 
-    lines_from_csv = ziploader.get_lines_from_csv(
-        zip_file=os.path.join(app.config["UPLOAD_FOLDER"], zip_file)
-    )
-
     processing_request = db.get_file_processing_request_by_id(request_id=request_id)
 
-    # initialize counters
-    total_lines_number = len(lines_from_csv)
-    processed_count = 0
-    errors_count = 0
-    error_urls = []
+    try:
 
-    validated_urls: List[str] = []
+        # TODO: move to separate function
 
-    redis_client: Redis = app.extensions["redis"]
+        lines_from_csv = ziploader.get_lines_from_csv(
+            zip_file=os.path.join(app.config["UPLOAD_FOLDER"], zip_file)
+        )
 
-    # put initial processing result with zeros in redis
-    task_response: FileProcessingTaskResponse = {
-        "status": StatusOption.INPROCESS.value,
-        "total": total_lines_number,
-        "processed": processed_count,
-        "errors": {
-            "count": errors_count,
-            "error_urls": error_urls
+        # initialize counters
+        total_lines_number = len(lines_from_csv)
+        processed_count = 0
+        errors_count = 0
+        error_urls = []
+
+        validated_urls: List[str] = []
+
+        redis_client: Redis = app.extensions["redis"]
+
+        # put initial processing result with zeros in redis
+        task_response: FileProcessingTaskResponse = {
+            "status": StatusOption.INPROCESS.value,
+            "total": total_lines_number,
+            "processed": processed_count,
+            "errors": {
+                "count": errors_count,
+                "error_urls": error_urls
+            }
         }
-    }
 
-    task_response_json = json.dumps(task_response)
-    redis_client.set(name=task_id, value=task_response_json)
-
-    db.update_processing_request(
-        processing_request=processing_request,
-        status=StatusOption.INPROCESS,
-        task_id=task_id,
-    )
-
-    for line in lines_from_csv:
-
-        try:
-            # try to validate url and add it to list with valid urls for further bulk create in db
-            validated_url = schemas.ResourceCreateRequestSchema.parse_obj({"url": line})
-            validated_urls.append(validated_url.url)
-
-        except ValidationError:
-            # increment counter is URL is invalid
-            errors_count += 1
-            error_urls.append(line)
-
-        finally:
-            processed_count += 1
-
-        # update fields in response for redis
-        task_response["processed"] = processed_count
-        task_response["errors"]["count"] = errors_count
-        task_response["errors"]["error_urls"] = error_urls
-
-        # сonvert task response dictionary to JSON
         task_response_json = json.dumps(task_response)
-
-        # set task response JSON in Redis
         redis_client.set(name=task_id, value=task_response_json)
 
-    db.bulk_create_web_resources(validated_urls=validated_urls)
+        db.update_processing_request(
+            processing_request=processing_request,
+            status=StatusOption.INPROCESS,
+            task_id=task_id,
+        )
 
-    db.update_processing_request(
-        processing_request=processing_request,
-        total_count=total_lines_number,
-        processed_count=processed_count,
-        errors_count=errors_count,
-        error_urls=error_urls,
-        status=StatusOption.SUCCEEDED,
-    )
+        for line in lines_from_csv:
+
+            try:
+                # try to validate url and add it to list with valid urls for further bulk create in db
+                validated_url = schemas.ResourceCreateRequestSchema.parse_obj({"url": line})
+                validated_urls.append(validated_url.url)
+
+            except ValidationError:
+                # increment counter is URL is invalid
+                errors_count += 1
+                error_urls.append(line)
+
+            finally:
+                processed_count += 1
+
+            # update fields in response for redis
+            task_response["processed"] = processed_count
+            task_response["errors"]["count"] = errors_count
+            task_response["errors"]["error_urls"] = error_urls
+
+            # сonvert task response dictionary to JSON
+            task_response_json = json.dumps(task_response)
+
+            # set task response JSON in Redis
+            redis_client.set(name=task_id, value=task_response_json)
+
+        db.bulk_create_web_resources(validated_urls=validated_urls)
+
+        db.update_processing_request(
+            processing_request=processing_request,
+            total_count=total_lines_number,
+            processed_count=processed_count,
+            errors_count=errors_count,
+            error_urls=error_urls,
+            status=StatusOption.SUCCEEDED,
+        )
+
+    except exceptions.NoCSVFileError:
+        # this log will be sent to celery, not to app
+        # TODO: change this behaviour
+        app.logger.info("Celery task failed cause ZIP archive did not contain any CSV file.")
+        db.update_processing_request(
+            processing_request=processing_request,
+            status=StatusOption.FAILED,
+            task_id=task_id,
+        )

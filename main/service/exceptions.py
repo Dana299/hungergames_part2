@@ -8,3 +8,7 @@ class NotFoundError(Exception):
 
 class InvalidFileFormatError(Exception):
     pass
+
+
+class NoCSVFileError(Exception):
+    pass
